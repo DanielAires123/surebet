@@ -27,4 +27,4 @@ def test_load_filters_json():
     assert len(cfg.filters) >= 5
     assert all(f.surebet_filter_id for f in cfg.filters)
     sure = next(f for f in cfg.filters if f.id == "surebet_surebets")
-    assert sure.min_profit == Decimal("0.01")
+    assert sure.min_profit == Decimal("0.05")

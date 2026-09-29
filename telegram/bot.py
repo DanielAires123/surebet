@@ -126,12 +126,15 @@ class TelegramBot:
         caption: str = "",
         *,
         message_thread_id: str | int | None = None,
+        count_toward_cap: bool = False,
     ) -> Optional[int]:
-        if not self._allowed():
+        # Overview screenshots are context for the filter, not bet alerts — don't burn the cap.
+        if count_toward_cap and not self._allowed():
             return None
         if self.dry_run:
             log.info("[dry-run] telegram photo skipped: %s", path)
-            self.sent_count += 1
+            if count_toward_cap:
+                self.sent_count += 1
             return 0
         if not path.exists():
             return None
@@ -145,7 +148,8 @@ class TelegramBot:
             body = self._request_json("sendPhoto", form, files={"photo": f})
         if not body:
             return None
-        self.sent_count += 1
+        if count_toward_cap:
+            self.sent_count += 1
         result = body.get("result") or {}
         mid = result.get("message_id")
         return int(mid) if mid is not None else 0

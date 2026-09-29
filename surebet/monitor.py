@@ -272,7 +272,8 @@ def process_filter(
             stats.screenshots += 1
         else:
             take_results_screenshot(page, str(shot_path), filt.source)
-            mid = bot.send_photo(shot_path, caption=filt.name, message_thread_id=thread_id)
+            caption = f"{filt.name} · {len(pending)} novas"
+            mid = bot.send_photo(shot_path, caption=caption, message_thread_id=thread_id)
             if mid is not None:
                 stats.screenshots += 1
             else:
@@ -289,6 +290,14 @@ def process_filter(
             if getattr(item, "content_hash", None):
                 content_sent_this_run.add(item.content_hash)
             continue
+
+        if not bot._allowed():
+            log.warning(
+                "Alert cap reached (%s) — skip remaining sends for %s (still process later filters)",
+                bot.max_alerts_per_run,
+                filt.name,
+            )
+            break
 
         if filt.source == "valuebet":
             text = format_valuebet_alert(item, tz=g.display_timezone)
@@ -405,10 +414,15 @@ def run_monitor(
                 except (CaptchaDetected, AntiBotDetected) as e:
                     run.failed += 1
                     run.errors.append(str(e))
+                    fr = FilterRunStats(
+                        filter_id=filt.id, filter_name=filt.name, ok=False, error=str(e)
+                    )
+                    run.per_filter.append(fr)
                     _alert_error(bot, state, settings, str(e))
                     run.duration_seconds = time.time() - started
                     _log_summary(run)
                     if not dry_run:
+                        _send_summary(bot, state, settings, run, alert_cap_hit=not bot._allowed())
                         state.save()
                     return 2
                 except Exception as e:
@@ -416,6 +430,7 @@ def run_monitor(
                     fr = FilterRunStats(filter_id=filt.id, filter_name=filt.name, ok=False, error=str(e))
                     run.failed += 1
                     run.errors.append(f"{filt.id}: {e}")
+                    run.per_filter.append(fr)
                     continue
 
                 run.per_filter.append(fr)
@@ -448,20 +463,7 @@ def run_monitor(
 
     # Summary + drain any pending Apostei/Não clicks
     if not dry_run:
-        summary = format_run_summary(
-            filters_ok=run.successful,
-            filters_failed=run.failed,
-            raw=run.raw,
-            sent=run.sent,
-            new=run.new,
-            duration_s=run.duration_seconds,
-            open_bets=state.open_bets_count(),
-        )
-        bot.send_message(
-            summary,
-            message_thread_id=settings.telegram_arbitrage_thread_id,
-            count_toward_cap=False,
-        )
+        _send_summary(bot, state, settings, run, alert_cap_hit=not bot._allowed())
         state.save()
         try:
             poll_callbacks(
@@ -476,6 +478,32 @@ def run_monitor(
     if filters and run.failed == len(filters):
         return 1
     return 0
+
+
+def _send_summary(
+    bot: TelegramBot,
+    state: StateStore,
+    settings: Settings,
+    run: RunStats,
+    *,
+    alert_cap_hit: bool,
+) -> None:
+    summary = format_run_summary(
+        filters_ok=run.successful,
+        filters_failed=run.failed,
+        raw=run.raw,
+        sent=run.sent,
+        new=run.new,
+        duration_s=run.duration_seconds,
+        open_bets=state.open_bets_count(),
+        per_filter=run.per_filter,
+        alert_cap_hit=alert_cap_hit,
+    )
+    bot.send_message(
+        summary,
+        message_thread_id=settings.telegram_arbitrage_thread_id,
+        count_toward_cap=False,
+    )
 
 
 def _alert_error(bot: TelegramBot, state: StateStore, settings: Settings, reason: str) -> None:
