@@ -59,9 +59,12 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+        env:
+          PYTHONPATH: .
 
       - name: Run monitor
         env:
+          PYTHONPATH: .
           SUREBET_USERNAME: ${{ secrets.SUREBET_USERNAME }}
           SUREBET_PASSWORD: ${{ secrets.SUREBET_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -76,7 +79,7 @@ jobs:
           python main.py $ARGS
 
       - name: Publish bot-state
-        if: always() && github.event.inputs.dry_run != 'true'
+        if: success() && github.event.inputs.dry_run != 'true'
         run: |
           if [ ! -f data/state.json ]; then
             echo "No state.json; skip"
