@@ -1,7 +1,7 @@
 # SureBet Monitor — Design Spec
 
 **Date:** 2026-09-29  
-**Status:** Approved in conversation; awaiting written-spec review before implementation plan  
+**Status:** Approved; implementation delivered 2026-09-29  
 **Base URL:** `https://pt.surebet.com`  
 **Stack:** Python 3.12, Playwright + Chromium, httpx, Decimal, pytest, GitHub Actions
 

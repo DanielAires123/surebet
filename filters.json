@@ -1,0 +1,74 @@
+{
+  "global": {
+    "send_only_validated": true,
+    "calculate_stakes": true,
+    "default_total_stake": 100,
+    "currency": "EUR",
+    "display_timezone": "Europe/Lisbon",
+    "allow_live_events": false,
+    "revalidate_before_send": true,
+    "telegram_max_alerts_per_run": 30
+  },
+  "filters": [
+    {
+      "id": "surebet_surebets",
+      "name": "Surebets",
+      "surebet_filter_id": "33897265",
+      "source": "surebet",
+      "enabled": true,
+      "send_results": true,
+      "screenshot_mode": "on_new",
+      "min_profit": 0.01,
+      "sports": [],
+      "bookmakers": []
+    },
+    {
+      "id": "valuebet_05un",
+      "name": "0.5UN",
+      "surebet_filter_id": "34237614",
+      "source": "valuebet",
+      "enabled": true,
+      "send_results": true,
+      "screenshot_mode": "on_new",
+      "min_overvalue": 0.05,
+      "sports": [],
+      "bookmakers": []
+    },
+    {
+      "id": "valuebet_07un",
+      "name": "0.7UN",
+      "surebet_filter_id": "34129105",
+      "source": "valuebet",
+      "enabled": true,
+      "send_results": true,
+      "screenshot_mode": "on_new",
+      "min_overvalue": 0.05,
+      "sports": [],
+      "bookmakers": []
+    },
+    {
+      "id": "valuebet_1un",
+      "name": "1UN",
+      "surebet_filter_id": "34200097",
+      "source": "valuebet",
+      "enabled": true,
+      "send_results": true,
+      "screenshot_mode": "on_new",
+      "min_overvalue": 0.05,
+      "sports": [],
+      "bookmakers": []
+    },
+    {
+      "id": "valuebet_max",
+      "name": "MAX",
+      "surebet_filter_id": "34129135",
+      "source": "valuebet",
+      "enabled": true,
+      "send_results": true,
+      "screenshot_mode": "on_new",
+      "min_overvalue": 0.05,
+      "sports": [],
+      "bookmakers": []
+    }
+  ]
+}
