@@ -1,0 +1,317 @@
+{
+  "url": "https://pt.surebet.com/surebets",
+  "title": "Apostas seguras encontradas / SureBet - Apostas profissionais",
+  "has_fazer_login": false,
+  "tables": [
+    {
+      "index": 0,
+      "id": "surebets-table",
+      "className": "app-table app-wide",
+      "rows": 85,
+      "headers": [
+        "▼Lucro",
+        "Casa de aposta",
+        "▲▼",
+        "Evento",
+        "Mercado",
+        "Chance",
+        ""
+      ],
+      "dataAttrs": {
+        "data-is-with-autoupdate": "1",
+        "data-product-model": "surebet",
+        "data-records-pinnable": "0",
+        "data-records-pin-scope": "surebets.prematch",
+        "data-product": "surebets",
+        "data-autoupdate-view-id": "8c07677a-c038-4460-93d1-7a01f7f5282e",
+        "data-filter-updated-at": "1790673109"
+      }
+    },
+    {
+      "index": 1,
+      "id": null,
+      "className": null,
+      "rows": 1,
+      "headers": [],
+      "dataAttrs": {}
+    }
+  ],
+  "selects": [
+    {
+      "id": "filter_current_id",
+      "name": "filter[current_id]",
+      "selected": "Surebets",
+      "selectedValue": "33897265",
+      "options": [
+        {
+          "value": "34290079",
+          "text": "Betano"
+        },
+        {
+          "value": "34302421",
+          "text": "One Book"
+        },
+        {
+          "value": "34285158",
+          "text": "Portugal"
+        },
+        {
+          "value": "33897265",
+          "text": "Surebets"
+        },
+        {
+          "value": "separator",
+          "text": "─────"
+        },
+        {
+          "value": "-2",
+          "text": "Multifiltro..."
+        }
+      ]
+    },
+    {
+      "id": "selector_order",
+      "name": "selector[order]",
+      "selected": "Lucro",
+      "selectedValue": "profit_desc",
+      "options": [
+        {
+          "value": "created_at_desc",
+          "text": "Idade"
+        },
+        {
+          "value": "start_at_desc",
+          "text": "Horário de início"
+        },
+        {
+          "value": "profit_desc",
+          "text": "Lucro"
+        },
+        {
+          "value": "roi_desc",
+          "text": "ROI"
+        }
+      ]
+    },
+    {
+      "id": "selector_comb_created_at_period",
+      "name": "selector[comb_created_at_period]",
+      "selected": "Qualquer horário",
+      "selectedValue": "0_0",
+      "options": [
+        {
+          "value": "0_0",
+          "text": "Qualquer horário"
+        },
+        {
+          "value": "600_0",
+          "text": "a partir de 10 minutos"
+        },
+        {
+          "value": "7200_0",
+          "text": "a partir de 2 horas"
+        },
+        {
+          "value": "43200_0",
+          "text": "a partir de 12 horas"
+        },
+        {
+          "value": "0_600",
+          "text": "até 10 minutos"
+        },
+        {
+          "value": "0_7200",
+          "text": "até 2 horas"
+        },
+        {
+          "value": "0_43200",
+          "text": "até 12 horas"
+        },
+        {
+          "value": "-1",
+          "text": "Customizado..."
+        }
+      ]
+    },
+    {
+      "id": "selector_settled_period",
+      "name": "selector[settled_period]",
+      "selected": "2 dias",
+      "selectedValue": "0_172800",
+      "options": [
+        {
+          "value": "0_0",
+          "text": "Qualquer horário"
+        },
+        {
+          "value": "0_43200",
+          "text": "12 horas"
+        },
+        {
+          "value": "0_57600",
+          "text": "16 horas"
+        },
+        {
+          "value": "0_86400",
+          "text": "1 dia"
+        },
+        {
+          "value": "0_172800",
+          "text": "2 dias"
+        },
+        {
+          "value": "0_604800",
+          "text": "1 semana"
+        },
+        {
+          "value": "0_2592000",
+          "text": "4 semanas e 2 dias"
+        },
+        {
+          "value": "-1",
+          "text": "Customizado..."
+        }
+      ]
+    }
+  ],
+  "records": [
+    {
+      "tag": "tbody",
+      "id": "surebet_record_jHvhHo0h_Vs",
+      "className": "surebet_record",
+      "attrs": {
+        "class": "surebet_record",
+        "id": "surebet_record_jHvhHo0h_Vs",
+        "data-testid": "record-card",
+        "data-id": "jHvhHo0h_Vs",
+        "data-product-model": "surebet",
+        "data-signature": "bc8e624f64c77db4a58753db292c7c45",
+        "data-formula": "bookformula1",
+        "data-profit": "6.98",
+        "data-created-at": "1790660699",
+        "data-start-at": "1790707500",
+        "data-roi": "5240.53"
+      }
+    },
+    {
+      "tag": "tbody",
+      "id": "surebet_record_ih1l1Ig5P7Y",
+      "className": "surebet_record",
+      "attrs": {
+        "class": "surebet_record",
+        "id": "surebet_record_ih1l1Ig5P7Y",
+        "data-testid": "record-card",
+        "data-id": "ih1l1Ig5P7Y",
+        "data-product-model": "surebet",
+        "data-signature": "fa2a0c70e3fb9f1d1e957d5aa8d9e1d3",
+        "data-formula": "bookformula1",
+        "data-profit": "6.28",
+        "data-created-at": "1790587956",
+        "data-start-at": "1790767800",
+        "data-roi": "1930.23"
+      }
+    },
+    {
+      "tag": "tbody",
+      "id": "surebet_record_i3LqBYsmiXk",
+      "className": "surebet_record",
+      "attrs": {
+        "class": "surebet_record",
+        "id": "surebet_record_i3LqBYsmiXk",
+        "data-testid": "record-card",
+        "data-id": "i3LqBYsmiXk",
+        "data-product-model": "surebet",
+        "data-signature": "ea92e17a45a4da7818888d0419544ad5",
+        "data-formula": "bookformula1",
+        "data-profit": "4.6",
+        "data-created-at": "1790670127",
+        "data-start-at": "1790676000",
+        "data-roi": "13420.3"
+      }
+    },
+    {
+      "tag": "tbody",
+      "id": "surebet_record_ivkamIt1H-GK-RrE",
+      "className": "surebet_record",
+      "attrs": {
+        "class": "surebet_record",
+        "id": "surebet_record_ivkamIt1H-GK-RrE",
+        "data-testid": "record-card",
+        "data-id": "ivkamIt1H-GK-RrE",
+        "data-product-model": "surebet",
+        "data-signature": "1f6e647dfabdcb89b48b87e6e6bcc2af",
+        "data-formula": "bookformula2",
+        "data-profit": "3.88",
+        "data-created-at": "1790672345",
+        "data-start-at": "1790676000",
+        "data-roi": "11337.35"
+      }
+    },
+    {
+      "tag": "tbody",
+      "id": "surebet_record_jYUS5osbNW-NjaCH",
+      "className": "surebet_record",
+      "attrs": {
+        "class": "surebet_record",
+        "id": "surebet_record_jYUS5osbNW-NjaCH",
+        "data-testid": "record-card",
+        "data-id": "jYUS5osbNW-NjaCH",
+        "data-product-model": "surebet",
+        "data-signature": "cc74e2891a4ae474f604384929d08a31",
+        "data-formula": "bookformula7",
+        "data-profit": "3.78",
+        "data-created-at": "1790673114",
+        "data-start-at": "1790676000",
+        "data-roi": "11037.09"
+      }
+    }
+  ],
+  "testids": [
+    "filter-heading",
+    "filter-saved-label",
+    "filter-share-button",
+    "filter-save-button",
+    "filter-saved-select",
+    "filter-sort-label",
+    "filter-sort-direction-button",
+    "filter-sort-select",
+    "filter-outcomes-label",
+    "filter-outcomes-checkbox",
+    "filter-profit-label",
+    "filter-profit-min-input",
+    "filter-profit-max-input",
+    "filter-roi-label",
+    "filter-roi-min-input",
+    "filter-roi-max-input",
+    "filter-age-label",
+    "filter-age-select",
+    "filter-event-label",
+    "filter-event-select",
+    "filter-players-bets-players-checkbox",
+    "filter-players-bets-teams-checkbox",
+    "filter-bookmakers-button",
+    "filter-sports-button",
+    "filter-tournaments-button",
+    "filter-markets-button",
+    "filter-advanced-button",
+    "filter-apply-button",
+    "filter-reset-button",
+    "record-card",
+    "record-card-leg",
+    "record-card-status-indicator",
+    "record-card-profit",
+    "record-card-age",
+    "record-card-calculator-button",
+    "record-card-drop-trash-button",
+    "record-card-report-button",
+    "record-card-leg-bookmaker",
+    "record-card-leg-sport",
+    "record-card-leg-event",
+    "record-card-leg-tournament",
+    "record-card-leg-market",
+    "record-card-leg-odds",
+    "record-card-multi-links-button",
+    "surebet-leg-initiator",
+    "record-card-group-link"
+  ]
+}

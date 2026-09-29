@@ -1,0 +1,63 @@
+{
+  "filters": [
+    {
+      "id": "34237614",
+      "name": "0.5UN"
+    },
+    {
+      "id": "34129105",
+      "name": "0.7UN"
+    },
+    {
+      "id": "34200097",
+      "name": "1UN"
+    },
+    {
+      "id": "34129135",
+      "name": "MAX"
+    },
+    {
+      "id": "34324182",
+      "name": "Polymarket"
+    },
+    {
+      "id": "34291337",
+      "name": "Tugas"
+    },
+    {
+      "id": "separator",
+      "name": "─────"
+    },
+    {
+      "id": "-2",
+      "name": "Multifiltro..."
+    }
+  ],
+  "record_count": 10,
+  "first_record_attrs": "id=\"valuebet_record_1taGhg\" data-id=\"1taGhg\" data-product-model=\"valuebet\" data-signature=\"6190e3da4ee3b731cbc5a971fcee8ea2\" data-overvalue=\"12.1\" data-start-at=\"1790707500\" data-value=\"1.67\" data-probability=\"67.13\"",
+  "testids": [
+    "record-card-drop-trash-button",
+    "record-card-group-link",
+    "record-card-leg-bookmaker",
+    "record-card-leg-event",
+    "record-card-leg-market",
+    "record-card-leg-odds",
+    "record-card-leg-sport",
+    "record-card-leg-tournament",
+    "record-card-report-button",
+    "record-card-status-indicator"
+  ],
+  "overvalue_text": [
+    "+12,1%"
+  ],
+  "bookie_hrefs": [
+    "22bet"
+  ],
+  "prong_ids": [
+    "1taGhg",
+    "1taGhg"
+  ],
+  "odds_test": [
+    "1.67"
+  ]
+}

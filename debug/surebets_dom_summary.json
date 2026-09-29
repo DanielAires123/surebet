@@ -1,0 +1,119 @@
+{
+  "filters": [
+    {
+      "id": "34290079",
+      "name": "Betano",
+      "selected": false
+    },
+    {
+      "id": "34302421",
+      "name": "One Book",
+      "selected": false
+    },
+    {
+      "id": "34285158",
+      "name": "Portugal",
+      "selected": false
+    },
+    {
+      "id": "33897265",
+      "name": "Surebets",
+      "selected": true
+    },
+    {
+      "id": "separator",
+      "name": "─────",
+      "selected": false
+    },
+    {
+      "id": "-2",
+      "name": "Multifiltro...",
+      "selected": false
+    }
+  ],
+  "tables": [
+    {
+      "id": "8c07677a-c038-4460-93d1-7a01f7f5282e",
+      "attrs": " class=\"app-table app-wide\" id=\"surebets-table\" data-is-with-autoupdate=\"1\" data-product-model=\"surebet\" data-records-pinnable=\"0\" data-records-pin-scope=\"surebets.prematch\" data-product=\"surebets\" data-autoupdate-view- data-filter-updated-at=\"1790673109\""
+    }
+  ],
+  "record_classes": [
+    "surebet_record"
+  ],
+  "record_count": 25,
+  "first_record_attrs": "surebet_record  id=\"surebet_record_jHvhHo0h_Vs\" data-testid=\"record-card\" data-id=\"jHvhHo0h_Vs\" data-product-model=\"surebet\" data-signature=\"bc8e624f64c77db4a58753db292c7c45\" data-formula=\"bookformula1\" data-profit=\"6.98\" data-created-at=\"1790660699\" data-start-at=\"1790707500\" data-roi=\"5240.53\"",
+  "surebet_record_count": 25,
+  "testids": [
+    "record-card",
+    "record-card-age",
+    "record-card-calculator-button",
+    "record-card-drop-trash-button",
+    "record-card-group-link",
+    "record-card-leg",
+    "record-card-leg-bookmaker",
+    "record-card-leg-event",
+    "record-card-leg-market",
+    "record-card-leg-odds",
+    "record-card-leg-sport",
+    "record-card-leg-tournament",
+    "record-card-multi-links-button",
+    "record-card-profit",
+    "record-card-report-button",
+    "record-card-status-indicator",
+    "surebet-leg-initiator"
+  ],
+  "data_attrs": [
+    [
+      "data-testid",
+      "record-card"
+    ],
+    [
+      "data-id",
+      "jHvhHo0h_Vs"
+    ],
+    [
+      "data-product-model",
+      "surebet"
+    ],
+    [
+      "data-signature",
+      "bc8e624f64c77db4a58753db292c7c45"
+    ],
+    [
+      "data-formula",
+      "bookformula1"
+    ],
+    [
+      "data-profit",
+      "6.98"
+    ],
+    [
+      "data-created-at",
+      "1790660699"
+    ],
+    [
+      "data-start-at",
+      "1790707500"
+    ],
+    [
+      "data-roi",
+      "5240.53"
+    ]
+  ],
+  "profit_text": [
+    "6,98%"
+  ],
+  "odds": [
+    "2.50",
+    "1.87"
+  ],
+  "bookies": [
+    "Betify",
+    "Bet7"
+  ],
+  "markets": [
+    "Total ≥6 ",
+    "Abaixo 5.5 "
+  ],
+  "min_profit_input": null
+}

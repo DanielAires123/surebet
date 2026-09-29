@@ -1,0 +1,678 @@
+{
+  "url": "https://pt.surebet.com/valuebets",
+  "title": "Apostas de valor encontradas / SureBet - Apostas profissionais",
+  "loginHints": {
+    "has_fazer_login": false,
+    "has_logout_or_profile": false
+  },
+  "tables": [
+    {
+      "index": 0,
+      "id": "valuebets-table",
+      "className": "app-table app-wide",
+      "rows": 11,
+      "headers": [
+        "▼Supervalorizado",
+        "Casa de aposta",
+        "▲▼",
+        "Evento",
+        "Mercado",
+        "▲▼ Chance",
+        "▲▼ Probabilidade"
+      ],
+      "first_row_cells": [
+        {
+          "tag": "th",
+          "className": "text-start",
+          "text": "▼Supervalorizado",
+          "html": "<a class=\"tablesort\" data-bs-toggle=\"tooltip\" data-bs-delay=\"{&quot;show&quot;:150,&quot;hide&quot;:0}\" data-bs-html=\"false\" data-bs-trigger=\"hover\" href=\"?order=overvalue_asc\" data-bs-original-title=\"Supervalorizado: classificar descendente\">▼Supervalorizado</a>",
+          "links": [
+            {
+              "href": "?order=overvalue_asc",
+              "text": "▼Supervalorizado",
+              "className": "tablesort"
+            }
+          ]
+        },
+        {
+          "tag": "th",
+          "className": null,
+          "text": "Casa de aposta",
+          "html": "Casa de aposta",
+          "links": []
+        },
+        {
+          "tag": "th",
+          "className": "text-center",
+          "text": "▲▼",
+          "html": "<a class=\"tablesort\" data-bs-toggle=\"tooltip\" data-bs-delay=\"{&quot;show&quot;:150,&quot;hide&quot;:0}\" data-bs-html=\"false\" data-bs-trigger=\"hover\" href=\"?order=start_at_desc\" data-bs-original-title=\"Horário de início: classificar descendente\"><span class=\"arrow\">\n  ▲▼\n</span>\n\n\n</a>",
+          "links": [
+            {
+              "href": "?order=start_at_desc",
+              "text": "▲▼",
+              "className": "tablesort"
+            }
+          ]
+        },
+        {
+          "tag": "th",
+          "className": null,
+          "text": "Evento",
+          "html": "Evento",
+          "links": []
+        },
+        {
+          "tag": "th",
+          "className": null,
+          "text": "Mercado",
+          "html": "Mercado",
+          "links": []
+        },
+        {
+          "tag": "th",
+          "className": "break-header text-end",
+          "text": "▲▼ Chance",
+          "html": "<a class=\"tablesort\" data-bs-toggle=\"tooltip\" data-bs-delay=\"{&quot;show&quot;:150,&quot;hide&quot;:0}\" data-bs-html=\"false\" data-bs-trigger=\"hover\" href=\"?order=value_desc\" data-bs-original-title=\"Chance: classificar descendente\"><span class=\"arrow\">\n  ▲▼\n</span>\n\nChance\n</a>",
+          "links": [
+            {
+              "href": "?order=value_desc",
+              "text": "▲▼ Chance",
+              "className": "tablesort"
+            }
+          ]
+        },
+        {
+          "tag": "th",
+          "className": "text-center",
+          "text": "▲▼ Probabilidade",
+          "html": "<a class=\"tablesort\" data-bs-toggle=\"tooltip\" data-bs-delay=\"{&quot;show&quot;:150,&quot;hide&quot;:0}\" data-bs-html=\"false\" data-bs-trigger=\"hover\" href=\"?order=probability_desc\" data-bs-original-title=\"Probabilidade: classificar descendente\"><span class=\"arrow\">\n  ▲▼\n</span>\n\nProbabilidade\n</a>",
+          "links": [
+            {
+              "href": "?order=probability_desc",
+              "text": "▲▼ Probabilidade",
+              "className": "tablesort"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "id": null,
+      "className": null,
+      "rows": 1,
+      "headers": [],
+      "first_row_cells": [
+        {
+          "tag": "td",
+          "className": "body",
+          "text": "",
+          "html": "\n                <div class=\"content\">\n                </div>\n              ",
+          "links": []
+        }
+      ]
+    }
+  ],
+  "selects": [
+    {
+      "id": "filter_current_id",
+      "name": "filter[current_id]",
+      "className": "form-select w-100 d-inline",
+      "selected": "MAX",
+      "options": [
+        "0.5UN",
+        "0.7UN",
+        "1UN",
+        "MAX",
+        "Polymarket",
+        "Tugas",
+        "─────",
+        "Multifiltro..."
+      ]
+    },
+    {
+      "id": "selector_order",
+      "name": "selector[order]",
+      "className": "form-select",
+      "selected": "Supervalorizado",
+      "options": [
+        "Horário de início",
+        "Chance",
+        "Probabilidade",
+        "Supervalorizado"
+      ]
+    },
+    {
+      "id": "selector_min_group_size",
+      "name": "selector[min_group_size]",
+      "className": "form-select w-100",
+      "selected": "75",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "7",
+        "10",
+        "15",
+        "20",
+        "30",
+        "50",
+        "75",
+        "100",
+        "150",
+        "200",
+        "Customizado..."
+      ]
+    },
+    {
+      "id": "selector_settled_period",
+      "name": "selector[settled_period]",
+      "className": "form-select w-100",
+      "selected": "2 dias",
+      "options": [
+        "Qualquer horário",
+        "12 horas",
+        "16 horas",
+        "1 dia",
+        "2 dias",
+        "1 semana",
+        "4 semanas e 2 dias",
+        "Customizado..."
+      ]
+    }
+  ],
+  "filterLabels": [
+    {
+      "tag": "div",
+      "attrs": {
+        "id": "filters",
+        "class": "form-group single-el"
+      },
+      "text": "Multifiltro\n\n                \n              \n\n              0.5UN0.7UN1UNMAXPolymarketTugas"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "type": "hidden",
+        "name": "filter[multifilter_open]",
+        "id": "filter-multifilter-open-flag"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {},
+      "text": "Multifiltro"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "class": "form-check-input",
+        "type": "checkbox",
+        "name": "filter[selected][]",
+        "id": "filter_selected_34237614"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "0.5UN"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "class": "form-check-input",
+        "type": "checkbox",
+        "name": "filter[selected][]",
+        "id": "filter_selected_34129105"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "0.7UN"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "class": "form-check-input",
+        "type": "checkbox",
+        "name": "filter[selected][]",
+        "id": "filter_selected_34200097"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "1UN"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "class": "form-check-input",
+        "type": "checkbox",
+        "name": "filter[selected][]",
+        "id": "filter_selected_34129135"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "MAX"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "class": "form-check-input",
+        "type": "checkbox",
+        "name": "filter[selected][]",
+        "id": "filter_selected_34324182"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "Polymarket"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "class": "form-check-input",
+        "type": "checkbox",
+        "name": "filter[selected][]",
+        "id": "filter_selected_34291337"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "Tugas"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "data-testid": "filter-saved-label"
+      },
+      "text": "Filtro"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "btn-site px-2 py-1 filter-share-button",
+        "data-testid": "filter-share-button",
+        "data-link": "/valuebets?fn=MAX&fv=96b53ea72ea68111409d165c4f2759da",
+        "data-product": "valuebets",
+        "data-copied-title": "Link do filtro copiado",
+        "data-apply-first-title": "Clique primeiro em \"Filtrar\" para aplicar suas últimas alterações",
+        "data-bs-toggle": "tooltip",
+        "data-bs-delay": "{\"show\":150,\"hide\":0}",
+        "data-bs-html": "false",
+        "data-bs-trigger": "hover",
+        "aria-label": "Copiar link do filtro",
+        "data-bs-original-title": "Copiar link do filtro"
+      },
+      "text": ""
+    },
+    {
+      "tag": "select",
+      "attrs": {
+        "class": "form-select w-100 d-inline",
+        "data-testid": "filter-saved-select",
+        "data-product": "valuebets",
+        "data-return-to": "/valuebets",
+        "data-initial": "34129135",
+        "name": "filter[current_id]",
+        "id": "filter_current_id"
+      },
+      "text": "0.5UN\n0.7UN\n1UN\nMAX\nPolymarket\nTugas\n─────\nMultifiltro..."
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "data-testid": "filter-sort-label"
+      },
+      "text": "Classificar"
+    },
+    {
+      "tag": "button",
+      "attrs": {
+        "name": "button",
+        "type": "button",
+        "class": "btn btn-light px-2",
+        "id": "filter-order-direction-change-button",
+        "data-testid": "filter-sort-direction-button",
+        "data-product": "valuebets",
+        "data-action": "index",
+        "data-icons": "{\"desc\":\"▼\",\"asc\":\"▲\"}"
+      },
+      "text": "▼"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-label"
+      },
+      "text": "Número mínimo de chance para cálculo"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-label",
+        "data-testid": "filter-event-label"
+      },
+      "text": "Evento durante"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "d-block",
+        "data-testid": "filter-odds-label"
+      },
+      "text": "Chance"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "d-block",
+        "data-testid": "filter-probability-label"
+      },
+      "text": "Probabilidade"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "d-block",
+        "data-testid": "filter-overvalue-label"
+      },
+      "text": "Supervalorizado"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "d-flex justify-content-between align-items-center"
+      },
+      "text": "Apostas no jogador"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "Jogadores"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "Times"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "id": "filter-complex-conditions-section"
+      },
+      "text": "Condições complexas"
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "mb-0"
+      },
+      "text": "Condições complexas"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "btn btn-link modal-button-link",
+        "id": "tournaments-filter-modal-button",
+        "data-testid": "filter-tournaments-button",
+        "data-bs-toggle": "modal",
+        "data-bs-target": "#filter-tournaments-modal"
+      },
+      "text": "Torneios (Todos)"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "form-group",
+        "id": "filter-odd-attributes-section"
+      },
+      "text": "Mercados (Todos)"
+    },
+    {
+      "tag": "span",
+      "attrs": {
+        "class": "btn btn-link modal-button-link",
+        "id": "markets-filter-modal-button",
+        "data-testid": "filter-markets-button"
+      },
+      "text": "Mercados (Todos)"
+    },
+    {
+      "tag": "i",
+      "attrs": {
+        "class": "fa-filter-circle-xmark fa"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "col-form-label"
+      },
+      "text": "Mensagem"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "modal",
+        "id": "filter-save-as-modal"
+      },
+      "text": "Salvar as configurações atuais do filtro\n\n      \n        \n          \n            0.5UN0.7UN1UNMAXPolymarketTugasNovo filtro:"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "form-check mb-0 filter-save-as-options-form"
+      },
+      "text": "0.5UN"
+    },
+    {
+      "tag": "input",
+      "attrs": {
+        "type": "radio",
+        "id": "filter_new_id_34237614",
+        "name": "filter[new_id]",
+        "class": "form-check-input"
+      },
+      "text": ""
+    },
+    {
+      "tag": "label",
+      "attrs": {
+        "class": "form-check-label"
+      },
+      "text": "0.5UN"
+    },
+    {
+      "tag": "div",
+      "attrs": {
+        "class": "form-check mb-0 filter-save-as-options-form"
+      },
+      "text": "0.7UN"
+    }
+  ],
+  "sampleLinks": [
+    {
+      "href": "/valuebets",
+      "text": "Apostas de valor",
+      "className": "nav-link active"
+    },
+    {
+      "href": "/wiki/valuebets",
+      "text": "",
+      "className": "nav-link"
+    },
+    {
+      "href": "/filters",
+      "text": "",
+      "className": "btn-site ms-1 px-2 py-1"
+    },
+    {
+      "href": "#xbookies-block",
+      "text": "Casas de apostas (13)",
+      "className": "modal-button-link"
+    },
+    {
+      "href": "/nav/bookie/22bet",
+      "text": "22Bet",
+      "className": "bookmaker-name"
+    },
+    {
+      "href": "/nav/valuebet/prong/1taGhg/if?odd_format=eu&odds=2102705634%3A-2037983530%3A1.67%3A22bet%3AAbaixo%2B3.5%2B-%2Bchutes%2Bno%2Balvo%2B%253Cspan%2Bclass%253D%2522minorc%2522%253E1%25C2%25BA%2Bo%2Btime%253C%252Fspan%253E&time_zone=Europe%2FLisbon",
+      "text": "Czech Republic – England",
+      "className": null
+    },
+    {
+      "href": "/nav/valuebet/prong/1taGhg/if?odd_format=eu&odds=2102705634%3A-2037983530%3A1.67%3A22bet%3AAbaixo%2B3.5%2B-%2Bchutes%2Bno%2Balvo%2B%253Cspan%2Bclass%253D%2522minorc%2522%253E1%25C2%25BA%2Bo%2Btime%253C%252Fspan%253E&time_zone=Europe%2FLisbon&type=prong",
+      "text": "1.67",
+      "className": "value_link"
+    },
+    {
+      "href": "/valuebets/similar?like=1taGhg",
+      "text": "67,1%",
+      "className": "similar-bets-link"
+    },
+    {
+      "href": "/valuebets/similar?like=1taGhg",
+      "text": "",
+      "className": "btn-site px-1 similar-bets-icon-link"
+    },
+    {
+      "href": "/valuebets/group?group_title=Czech+Republic+%E2%80%93+England&like=1taGhg",
+      "text": "+ 1",
+      "className": "group-link"
+    },
+    {
+      "href": "/nav/bookie/bet7",
+      "text": "Bet7",
+      "className": "bookmaker-name"
+    },
+    {
+      "href": "/nav/valuebet/prong/5DuBiw/if?odd_format=eu&odds=-1955286523%3A-1954464796%3A1.65%3Abet7%3AH2%2528%25E2%2588%25920.5%2529%2B%253Cspan%2Bclass%253D%2522minor%2522%253E1%25C2%25BA%2Bper%25C3%25ADodo%253C%252Fspan%253E&time_zone=Europe%2FLisbon",
+      "text": "Ehime FC – FC Tokyo",
+      "className": null
+    },
+    {
+      "href": "/nav/valuebet/prong/5DuBiw/if?odd_format=eu&odds=-1955286523%3A-1954464796%3A1.65%3Abet7%3AH2%2528%25E2%2588%25920.5%2529%2B%253Cspan%2Bclass%253D%2522minor%2522%253E1%25C2%25BA%2Bper%25C3%25ADodo%253C%252Fspan%253E&time_zone=Europe%2FLisbon&type=prong",
+      "text": "1.65",
+      "className": "value_link"
+    },
+    {
+      "href": "/valuebets/similar?like=5DuBiw",
+      "text": "67,2%",
+      "className": "similar-bets-link"
+    },
+    {
+      "href": "/valuebets/similar?like=5DuBiw",
+      "text": "",
+      "className": "btn-site px-1 similar-bets-icon-link"
+    },
+    {
+      "href": "/valuebets/group?group_title=Ehime+FC+%E2%80%93+FC+Tokyo&like=5DuBiw",
+      "text": "+ 1",
+      "className": "group-link"
+    },
+    {
+      "href": "/nav/bookie/bet7",
+      "text": "Bet7",
+      "className": "bookmaker-name"
+    },
+    {
+      "href": "/nav/valuebet/prong/iWJpiw/if?odd_format=eu&odds=-1956070895%3A-1956027767%3A1.694%3Abet7%3AX2&time_zone=Europe%2FLisbon",
+      "text": "Estudiantes de LP Reserve – Defensa Y Justicia Reserve",
+      "className": null
+    },
+    {
+      "href": "/nav/valuebet/prong/iWJpiw/if?odd_format=eu&odds=-1956070895%3A-1956027767%3A1.694%3Abet7%3AX2&time_zone=Europe%2FLisbon&type=prong",
+      "text": "1.69",
+      "className": "value_link"
+    },
+    {
+      "href": "/valuebets/similar?like=iWJpiw",
+      "text": "63,9%",
+      "className": "similar-bets-link"
+    },
+    {
+      "href": "/valuebets/similar?like=iWJpiw",
+      "text": "",
+      "className": "btn-site px-1 similar-bets-icon-link"
+    },
+    {
+      "href": "/nav/bookie/bet7",
+      "text": "Bet7",
+      "className": "bookmaker-name"
+    },
+    {
+      "href": "/nav/valuebet/prong/qJyAiw/if?odd_format=eu&odds=-1955355209%3A-1954505560%3A1.625%3Abet7%3AH2%2528%25E2%2588%25920.5%2529%2B%253Cspan%2Bclass%253D%2522minor%2522%253E1%25C2%25BA%2Bper%25C3%25ADodo%253C%252Fspan%253E&time_zone=Europe%2FLisbon",
+      "text": "Tochigi City FC – Sanfrecce Hiroshima",
+      "className": null
+    },
+    {
+      "href": "/nav/valuebet/prong/qJyAiw/if?odd_format=eu&odds=-1955355209%3A-1954505560%3A1.625%3Abet7%3AH2%2528%25E2%2588%25920.5%2529%2B%253Cspan%2Bclass%253D%2522minor%2522%253E1%25C2%25BA%2Bper%25C3%25ADodo%253C%252Fspan%253E&time_zone=Europe%2FLisbon&type=prong",
+      "text": "1.63",
+      "className": "value_link"
+    },
+    {
+      "href": "/valuebets/similar?like=qJyAiw",
+      "text": "66,5%",
+      "className": "similar-bets-link"
+    },
+    {
+      "href": "/valuebets/similar?like=qJyAiw",
+      "text": "",
+      "className": "btn-site px-1 similar-bets-icon-link"
+    },
+    {
+      "href": "/nav/bookie/bet7",
+      "text": "Bet7",
+      "className": "bookmaker-name"
+    },
+    {
+      "href": "/nav/valuebet/prong/nulyiw/if?odd_format=eu&odds=-1955626677%3A-1955403362%3A1.525%3Abet7%3AAcima%2B2.5&time_zone=Europe%2FLisbon",
+      "text": "Giravanz Kitakyushu – Nagoya Grampus",
+      "className": null
+    },
+    {
+      "href": "/nav/valuebet/prong/nulyiw/if?odd_format=eu&odds=-1955626677%3A-1955403362%3A1.525%3Abet7%3AAcima%2B2.5&time_zone=Europe%2FLisbon&type=prong",
+      "text": "1.53",
+      "className": "value_link"
+    },
+    {
+      "href": "/valuebets/similar?like=nulyiw",
+      "text": "70,7%",
+      "className": "similar-bets-link"
+    }
+  ],
+  "bodyClasses": "light"
+}
