@@ -47,30 +47,16 @@ from telegram.formatting import format_arbitrage_alert, format_error_alert, form
 log = logging.getLogger(__name__)
 
 
-def _maybe_screenshot(
-    page: Page,
-    filt: FilterConfig,
-    path: Path,
-    *,
-    is_new: bool,
-    is_changed: bool,
-    is_error: bool,
-) -> bool:
-    mode = filt.screenshot_mode
-    if mode == ScreenshotMode.NEVER:
+def _want_overview_shot(mode: ScreenshotMode, reasons: list[str]) -> bool:
+    """One table screenshot per filter when there is something to send."""
+    if mode == ScreenshotMode.NEVER or mode == ScreenshotMode.ON_ERROR:
         return False
     if mode == ScreenshotMode.ALWAYS:
-        take_results_screenshot(page, str(path), filt.source)
         return True
-    if mode == ScreenshotMode.ON_ERROR and is_error:
-        take_results_screenshot(page, str(path), filt.source)
-        return True
-    if mode == ScreenshotMode.ON_NEW and is_new:
-        take_results_screenshot(page, str(path), filt.source)
-        return True
-    if mode == ScreenshotMode.ON_CHANGE and (is_new or is_changed):
-        take_results_screenshot(page, str(path), filt.source)
-        return True
+    if mode == ScreenshotMode.ON_NEW:
+        return any(r == "new" for r in reasons)
+    if mode == ScreenshotMode.ON_CHANGE:
+        return any(r in {"new", "changed", "expired_reappear"} for r in reasons)
     return False
 
 
@@ -126,6 +112,8 @@ def process_filter(
 
     log.info("Above threshold: %s", len(items))
     settings.screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+    pending: list[tuple[object, str]] = []
 
     for item in items:
         if item.validation_status == ValidationStatus.VALIDATED:
@@ -183,6 +171,26 @@ def process_filter(
                 log.info("Skip send (gone from DOM): %s", item.event_id)
                 continue
 
+        pending.append((item, reason))
+
+    # One overview photo of the full table, then text-only alerts.
+    if pending and _want_overview_shot(filt.screenshot_mode, [r for _, r in pending]):
+        shot_path = settings.screenshots_dir / f"overview_{filt.id}.png"
+        if dry_run:
+            log.info("[dry-run] would send overview screenshot for %s", filt.name)
+            stats.screenshots += 1
+        else:
+            take_results_screenshot(page, str(shot_path), filt.source)
+            if bot.send_photo(shot_path, caption=filt.name):
+                stats.screenshots += 1
+            else:
+                log.error("Telegram overview photo failed for %s", filt.name)
+            try:
+                shot_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    for item, _reason in pending:
         if dry_run:
             log.info("[dry-run] would send %s", item.identity_hash)
             stats.sent += 1
@@ -193,26 +201,9 @@ def process_filter(
         else:
             text = format_arbitrage_alert(item, tz=g.display_timezone, currency=g.currency)
 
-        shot_path = settings.screenshots_dir / f"{(item.identity_hash or 'x')[:16]}.png"
-        took = _maybe_screenshot(
-            page,
-            filt,
-            shot_path,
-            is_new=reason == "new",
-            is_changed=reason in {"changed", "expired_reappear"},
-            is_error=False,
-        )
-
         ok = bot.send_message(text)
         if not ok:
             log.error("Telegram send_message failed for %s", item.event_id)
-        if ok and took and shot_path.exists():
-            bot.send_photo(shot_path, caption=filt.name)
-            stats.screenshots += 1
-            try:
-                shot_path.unlink(missing_ok=True)
-            except OSError:
-                pass
 
         if ok:
             stats.sent += 1
