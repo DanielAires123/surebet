@@ -1,8 +1,10 @@
 name: surebet-monitor
 
 on:
+  # UTC. Offset off :00/:15/:30/:45 — GitHub drops schedules under load at those slots.
+  # Any push that changes this file re-registers the cron (required if 0 schedule runs ever fired).
   schedule:
-    - cron: "7,22,37,52 * * * *"
+    - cron: "8,23,38,53 * * * *"
   workflow_dispatch:
     inputs:
       filter_id:

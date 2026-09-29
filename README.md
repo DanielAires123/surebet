@@ -100,8 +100,8 @@ python main.py --dry-run --headed --debug
 
 ### 8. Ativar schedule
 
-O cron `7,22,37,52 * * * *` já está no workflow (~15 em 15 min).  
-Confirma que Actions estão enabled no repo.
+Cron UTC `8,23,38,53 * * * *` (~15 em 15 min) no workflow.  
+Confirma Actions enabled. Se **nunca** aparecer um run com event `schedule` (só `Manually run`), faz um push que altere `.github/workflows/surebet-monitor.yml` — o GitHub só (re)regista o cron depois disso.
 
 ## CLI
 
@@ -129,6 +129,7 @@ Runners são efémeros. O workflow grava só `state.json` (hashes / last odds / 
 
 | Sintoma | Causa / ação |
 |---|---|
+| **Schedule nunca corre** (0 runs `schedule`, só manuais) | Push a alterar o YAML do workflow para re-registar o cron. Cron é UTC. Delays de vários min são normais; slots todos skipados = cron não registado |
 | **LOGIN FAILED** / **AUTH_FAILED** + grecaptcha | No Actions: usa `SUREBET_STORAGE_STATE_B64`. Local: `--export-storage` e renova o secret |
 | **CAPTCHA DETECTED** | Site pediu CAPTCHA — o monitor **para**. Não há bypass. Espera / login manual / reduz frequência |
 | **ANTI_BOT_DETECTED** | Mesmo: para sem contornar |

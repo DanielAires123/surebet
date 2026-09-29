@@ -2,8 +2,9 @@ name: surebet-callbacks
 
 # Drain Apostei/Não button presses between monitor runs.
 on:
+  # UTC. Touching this cron re-registers the schedule with GitHub.
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"
   workflow_dispatch:
 
 concurrency:
