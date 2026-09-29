@@ -123,8 +123,9 @@ def extract_valuebets(page: Page, filt: FilterConfig, settings: Settings) -> tup
             vb.validation_reasons = vr.reasons
             vb.calculated_ev = vr.calculated_ev
             vb.identity_hash = valuebet_identity_hash(vb)
+            stats.parsed += 1  # DOM row extracted OK (threshold filter is separate)
 
-            # threshold filters
+            # threshold filters (post-scrape safety net — not parse failures)
             if filt.min_overvalue is not None and (vb.site_overvalue is None or vb.site_overvalue < filt.min_overvalue):
                 continue
             if filt.min_odds is not None and (vb.odds is None or vb.odds < filt.min_odds):
@@ -133,7 +134,6 @@ def extract_valuebets(page: Page, filt: FilterConfig, settings: Settings) -> tup
                 continue
 
             out.append(vb)
-            stats.parsed += 1
         except Exception as e:
             stats.failed += 1
             log.warning("Failed to parse valuebet row %s: %s", i, e)

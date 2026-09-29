@@ -118,11 +118,13 @@ def process_filter(
     log.info("Parsed: %s", parse_stats.parsed)
 
     if parse_stats.raw > 0 and parse_stats.success_rate < settings.min_parse_success_rate:
-        # DOM has rows but almost nothing parsed
+        # Real extract failures only (threshold skips already count as parsed)
         raise ParserOrLayoutChanged(
-            f"parse_success_rate={parse_stats.success_rate} < {settings.min_parse_success_rate}"
+            f"parse_success_rate={parse_stats.success_rate} < {settings.min_parse_success_rate} "
+            f"(raw={parse_stats.raw} parsed={parse_stats.parsed} failed={parse_stats.failed})"
         )
 
+    log.info("Above threshold: %s", len(items))
     settings.screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     for item in items:

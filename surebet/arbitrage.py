@@ -151,12 +151,12 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
                 arb.stakes = attach_bookmakers(plan, [o.bookmaker for o in outcomes])
 
             arb.identity_hash = arbitrage_identity_hash(arb)
+            stats.parsed += 1  # DOM row extracted OK (threshold filter is separate)
 
             if filt.min_profit is not None and (arb.site_profit is None or arb.site_profit < filt.min_profit):
                 continue
 
             out.append(arb)
-            stats.parsed += 1
         except Exception as e:
             stats.failed += 1
             log.warning("Failed to parse surebet row %s: %s", i, e)
