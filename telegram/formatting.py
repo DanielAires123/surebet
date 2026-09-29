@@ -1,47 +1,16 @@
-"""Telegram message formatting — compact alerts + inline keyboards."""
+"""Telegram message formatting — photo captions + helpers."""
 
 from __future__ import annotations
 
-from datetime import datetime
-from decimal import Decimal
-from typing import Any
-from zoneinfo import ZoneInfo
+from typing import Any, Sequence
 
 from surebet.models import Arbitrage, FilterRunStats, ValueBet
 from surebet.percent import format_percent
-from surebet.text_clean import age_label, clean_competition
 
-
-def _hhmmss(dt: datetime | None, tz_name: str) -> str:
-    if not dt:
-        return "--:--:--"
-    try:
-        local = dt.astimezone(ZoneInfo(tz_name))
-    except Exception:
-        local = dt
-    return local.strftime("%H:%M:%S")
-
-
-def _money(amount: Decimal, currency: str) -> str:
-    return f"{amount} {currency}"
-
-
-def _signed_money(amount: Decimal, currency: str) -> str:
-    if amount > 0:
-        return f"+{_money(amount, currency)}"
-    if amount < 0:
-        return f"-{_money(abs(amount), currency)}"
-    return _money(amount, currency)
-
-
-def _meta_line(captured_at: datetime | None, tz: str) -> str:
-    age = age_label(captured_at)
-    base = _hhmmss(captured_at, tz)
-    return f"{base} · {age}" if age else base
+TELEGRAM_CAPTION_MAX = 1024
 
 
 def bet_callback_data(action: str, short_id: str) -> str:
-    # Telegram callback_data max 64 bytes. short_id = 16 hex.
     return f"bet:{action}:{short_id}"
 
 
@@ -50,7 +19,7 @@ def short_id_from_hash(identity_hash: str) -> str:
 
 
 def build_alert_keyboard(*, short_id: str) -> dict[str, Any]:
-    """Inline keyboard: Apostei / Não only (Surebet hrefs are /nav/ gateways, not direct bookies)."""
+    """Kept for legacy pending Apostei/Não messages."""
     return {
         "inline_keyboard": [
             [
@@ -61,64 +30,67 @@ def build_alert_keyboard(*, short_id: str) -> dict[str, Any]:
     }
 
 
-def format_valuebet_alert(vb: ValueBet, *, tz: str = "Europe/Lisbon") -> str:
-    roi = vb.calculated_ev if vb.calculated_ev is not None else vb.site_overvalue
-    roi_s = format_percent(roi, signed=True) if roi is not None else "n/a"
+def _roi_s(item: Arbitrage | ValueBet) -> str:
+    if isinstance(item, ValueBet):
+        roi = item.calculated_ev if item.calculated_ev is not None else item.site_overvalue
+    else:
+        roi = item.calculated_profit if item.calculated_profit is not None else item.site_profit
+    return format_percent(roi, signed=True) if roi is not None else "n/a"
+
+
+def format_valuebet_caption_line(vb: ValueBet) -> str:
     odd = f"{vb.odds:.2f}" if vb.odds is not None else "n/a"
-    prob = format_percent(vb.fair_probability) if vb.fair_probability is not None else None
-    liga = clean_competition(vb.competition)
-
-    lines = [
-        f"🔥 {roi_s} · {vb.filter_name}",
-        vb.event or "n/a",
-    ]
-    if liga or vb.sport:
-        lines.append(" · ".join(x for x in (vb.sport, liga) if x))
-    lines.append(vb.market_raw or "n/a")
-    book_line = f"{vb.bookmaker or 'n/a'} @ {odd}"
-    if prob:
-        book_line += f" · p {prob}"
-    lines.append(book_line)
-    lines.append(_meta_line(vb.captured_at, tz))
-    return "\n".join(lines)
+    return f"{vb.event or 'n/a'}\n{vb.market_raw or 'n/a'} @ {odd} · {_roi_s(vb)}"
 
 
-def format_arbitrage_alert(arb: Arbitrage, *, tz: str = "Europe/Lisbon", currency: str = "EUR") -> str:
-    roi = arb.calculated_profit if arb.calculated_profit is not None else arb.site_profit
-    roi_s = format_percent(roi, signed=True) if roi is not None else "n/a"
-    sport = arb.sport or next((o.sport for o in arb.outcomes if o.sport), None)
-    liga = clean_competition(
-        arb.competition or next((o.tournament for o in arb.outcomes if o.tournament), None)
-    )
+def format_arbitrage_caption_line(arb: Arbitrage) -> str:
+    odds_s = " / ".join(f"{o.bookmaker or '?'} {o.odds:.2f}" for o in arb.outcomes) or "n/a"
+    return f"{arb.event or 'n/a'}\n{odds_s} · {_roi_s(arb)}"
 
-    lines = [
-        f"💰 {roi_s} · {arb.filter_name}",
-        arb.event or "n/a",
-    ]
-    if liga or sport:
-        lines.append(" · ".join(x for x in (sport, liga) if x))
 
-    show_stakes = bool(arb.stakes and arb.stakes.profit >= 0)
-    for i, o in enumerate(arb.outcomes):
-        odd = f"{o.odds:.2f}"
-        market = o.market_raw or "n/a"
-        book = o.bookmaker or "n/a"
-        if show_stakes and arb.stakes and i < len(arb.stakes.legs):
-            st = arb.stakes.legs[i].stake
-            lines.append(f"{book} · {market}")
-            lines.append(f"  {odd} → {_money(st, currency)}")
+def _item_block(item: Arbitrage | ValueBet) -> str:
+    if isinstance(item, ValueBet):
+        return format_valuebet_caption_line(item)
+    return format_arbitrage_caption_line(item)
+
+
+def format_filter_caption(
+    filter_name: str,
+    items: Sequence[Arbitrage | ValueBet],
+    *,
+    max_len: int = TELEGRAM_CAPTION_MAX,
+) -> str:
+    """Photo caption: `{filtro} — N novas` + compact blocks (Telegram 1024 cap)."""
+    n = len(items)
+    header = f"{filter_name} — {n} nova" if n == 1 else f"{filter_name} — {n} novas"
+    if n == 0:
+        return header
+
+    blocks = [_item_block(it) for it in items]
+    fitted: list[str] = []
+    for block in blocks:
+        trial = "\n\n".join([header, *fitted, block])
+        if len(trial) <= max_len:
+            fitted.append(block)
         else:
-            lines.append(f"{book} · {market} @ {odd}")
+            break
 
-    if show_stakes and arb.stakes:
-        lines.append(
-            f"{_money(arb.stakes.total, currency)} → "
-            f"{_money(arb.stakes.guaranteed_payout, currency)} "
-            f"({_signed_money(arb.stakes.profit, currency)})"
-        )
+    omitted = n - len(fitted)
+    if omitted == 0:
+        return "\n\n".join([header, *fitted])
 
-    lines.append(_meta_line(arb.captured_at, tz))
-    return "\n".join(lines)
+    # Drop blocks until header + body + marker fit
+    marker = f"… +{omitted} mais"
+    while fitted:
+        text = "\n\n".join([header, *fitted, marker])
+        if len(text) <= max_len:
+            return text
+        fitted.pop()
+        omitted = n - len(fitted)
+        marker = f"… +{omitted} mais"
+
+    text = f"{header}\n\n{marker}"
+    return text if len(text) <= max_len else text[: max_len - 1] + "…"
 
 
 def format_error_alert(reason: str) -> str:

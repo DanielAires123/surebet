@@ -29,7 +29,6 @@ from surebet.models import (
     Arbitrage,
     FilterConfig,
     FilterRunStats,
-    PendingAlert,
     ResultsState,
     RunStats,
     ScreenshotMode,
@@ -45,29 +44,19 @@ from surebet.state import StateStore
 from surebet.valuebets import extract_valuebets
 from telegram.bot import TelegramBot
 from telegram.callbacks import poll_callbacks
-from telegram.formatting import (
-    build_alert_keyboard,
-    format_arbitrage_alert,
-    format_error_alert,
-    format_run_summary,
-    format_valuebet_alert,
-    short_id_from_hash,
-)
+from telegram.formatting import format_error_alert, format_filter_caption, format_run_summary
 
 log = logging.getLogger(__name__)
 
 
 def _want_overview_shot(mode: ScreenshotMode, reasons: list[str]) -> bool:
-    """One table screenshot per filter when there is something to send."""
+    """Photo is the only alert channel — shoot whenever we have something to send."""
     if mode == ScreenshotMode.NEVER or mode == ScreenshotMode.ON_ERROR:
         return False
     if mode == ScreenshotMode.ALWAYS:
         return True
-    if mode == ScreenshotMode.ON_NEW:
-        return any(r == "new" for r in reasons)
-    if mode == ScreenshotMode.ON_CHANGE:
-        return any(r in {"new", "changed", "expired_reappear"} for r in reasons)
-    return False
+    # on_new / on_change: any pending send reason
+    return bool(reasons)
 
 
 def _item_roi(item: Arbitrage | ValueBet) -> Decimal:
@@ -82,62 +71,6 @@ def _thread_for(settings: Settings, source: str) -> str | None:
     if source == "valuebet":
         return settings.telegram_valuebet_thread_id or settings.telegram_arbitrage_thread_id
     return settings.telegram_arbitrage_thread_id or settings.telegram_valuebet_thread_id
-
-
-def _pending_from_valuebet(
-    vb: ValueBet,
-    *,
-    chat_id: str,
-    message_id: int,
-    thread_id: str | None,
-) -> PendingAlert:
-    assert vb.identity_hash
-    return PendingAlert(
-        short_id=short_id_from_hash(vb.identity_hash),
-        identity_hash=vb.identity_hash,
-        source="valuebet",
-        filter_id=vb.filter_id,
-        filter_name=vb.filter_name,
-        event=vb.event,
-        sport=vb.sport,
-        market_raw=vb.market_raw,
-        bookmaker=vb.bookmaker,
-        odds=[vb.odds] if vb.odds is not None else None,
-        roi=_item_roi(vb) if _item_roi(vb) > Decimal("-900") else None,
-        chat_id=chat_id,
-        message_id=message_id,
-        thread_id=str(thread_id) if thread_id else None,
-        created_at=datetime.now(timezone.utc),
-    )
-
-
-def _pending_from_arb(
-    arb: Arbitrage,
-    *,
-    chat_id: str,
-    message_id: int,
-    thread_id: str | None,
-) -> PendingAlert:
-    assert arb.identity_hash
-    books = " / ".join(o.bookmaker for o in arb.outcomes)
-    markets = " | ".join(o.market_raw for o in arb.outcomes)
-    return PendingAlert(
-        short_id=short_id_from_hash(arb.identity_hash),
-        identity_hash=arb.identity_hash,
-        source="surebet",
-        filter_id=arb.filter_id,
-        filter_name=arb.filter_name,
-        event=arb.event,
-        sport=arb.sport,
-        market_raw=markets,
-        bookmaker=books,
-        odds=[o.odds for o in arb.outcomes],
-        roi=_item_roi(arb) if _item_roi(arb) > Decimal("-900") else None,
-        chat_id=chat_id,
-        message_id=message_id,
-        thread_id=str(thread_id) if thread_id else None,
-        created_at=datetime.now(timezone.utc),
-    )
 
 
 def process_filter(
@@ -262,74 +195,49 @@ def process_filter(
 
         pending.append((item, reason))
 
-    # Highest ROI first — cap hits the weak ones
+    # Highest ROI first — caption truncates the weak ones
     pending.sort(key=lambda pair: _item_roi(pair[0]), reverse=True)
+    items = [it for it, _ in pending]
 
     if pending and _want_overview_shot(filt.screenshot_mode, [r for _, r in pending]):
+        caption = format_filter_caption(filt.name, items)
         shot_path = settings.screenshots_dir / f"overview_{filt.id}.png"
+        sent_ok = False
         if dry_run:
-            log.info("[dry-run] would send overview screenshot for %s", filt.name)
+            log.info("[dry-run] would send photo for %s (%s novas)\n%s", filt.name, len(items), caption)
+            sent_ok = True
             stats.screenshots += 1
         else:
             take_results_screenshot(page, str(shot_path), filt.source)
-            caption = f"{filt.name} · {len(pending)} novas"
             mid = bot.send_photo(shot_path, caption=caption, message_thread_id=thread_id)
             if mid is not None:
+                sent_ok = True
                 stats.screenshots += 1
             else:
-                log.error("Telegram overview photo failed for %s", filt.name)
+                # photo failed — still surface the list as text
+                log.error("Telegram photo failed for %s — fallback text", filt.name)
+                mid = bot.send_message(caption, message_thread_id=thread_id, count_toward_cap=False)
+                sent_ok = mid is not None
             try:
                 shot_path.unlink(missing_ok=True)
             except OSError:
                 pass
 
-    for item, _reason in pending:
-        if dry_run:
-            log.info("[dry-run] would send %s", item.identity_hash)
-            stats.sent += 1
-            if getattr(item, "content_hash", None):
-                content_sent_this_run.add(item.content_hash)
-            continue
-
-        if not bot._allowed():
-            log.warning(
-                "Alert cap reached (%s) — skip remaining sends for %s (still process later filters)",
-                bot.max_alerts_per_run,
-                filt.name,
-            )
-            break
-
-        if filt.source == "valuebet":
-            text = format_valuebet_alert(item, tz=g.display_timezone)
+        if sent_ok:
+            for item in items:
+                stats.sent += 1
+                if getattr(item, "content_hash", None):
+                    content_sent_this_run.add(item.content_hash)
+                if filt.source == "valuebet":
+                    state.touch_valuebet(item, sent=True)
+                else:
+                    state.touch_arbitrage(item, sent=True)
         else:
-            text = format_arbitrage_alert(item, tz=g.display_timezone, currency=g.currency)
-
-        sid = short_id_from_hash(item.identity_hash or "")
-        keyboard = build_alert_keyboard(short_id=sid)
-        mid = bot.send_message(text, message_thread_id=thread_id, reply_markup=keyboard)
-        if mid is None:
-            log.error("Telegram send_message failed for %s", item.event_id)
-            if filt.source == "valuebet":
-                state.touch_valuebet(item, sent=False)
-            else:
-                state.touch_arbitrage(item, sent=False)
-            continue
-
-        stats.sent += 1
-        if getattr(item, "content_hash", None):
-            content_sent_this_run.add(item.content_hash)
-        if filt.source == "valuebet":
-            state.touch_valuebet(item, sent=True)
-            state.register_pending(
-                _pending_from_valuebet(
-                    item, chat_id=bot.chat_id, message_id=mid, thread_id=thread_id
-                )
-            )
-        else:
-            state.touch_arbitrage(item, sent=True)
-            state.register_pending(
-                _pending_from_arb(item, chat_id=bot.chat_id, message_id=mid, thread_id=thread_id)
-            )
+            for item in items:
+                if filt.source == "valuebet":
+                    state.touch_valuebet(item, sent=False)
+                else:
+                    state.touch_arbitrage(item, sent=False)
 
     log.info("Validated: %s", stats.validated)
     log.info("Unverified: %s", stats.unverified)
