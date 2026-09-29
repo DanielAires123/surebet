@@ -102,4 +102,4 @@ class TelegramBot:
         return ok
 
     def test_connection(self) -> bool:
-        return self.send_message("✅ SureBet Monitor\nTelegram configuration OK.")
+        return self.send_message("✅ SureBet Monitor\nCabrão quem está a ver. Mas isto está a funcionar. Bom dia a todos.")

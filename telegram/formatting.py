@@ -1,9 +1,8 @@
-"""Telegram message formatting."""
+"""Telegram message formatting — compact alerts."""
 
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from surebet.models import Arbitrage, ValueBet
@@ -21,97 +20,53 @@ def _hhmmss(dt: datetime | None, tz_name: str) -> str:
 
 
 def format_valuebet_alert(vb: ValueBet, *, tz: str = "Europe/Lisbon") -> str:
-    ov = format_percent(vb.site_overvalue, signed=True) if vb.site_overvalue is not None else "n/a"
-    ev = format_percent(vb.calculated_ev, signed=True) if vb.calculated_ev is not None else "n/a"
+    roi = vb.calculated_ev if vb.calculated_ev is not None else vb.site_overvalue
+    roi_s = format_percent(roi, signed=True) if roi is not None else "n/a"
     prob = format_percent(vb.fair_probability) if vb.fair_probability is not None else "n/a"
     odd = f"{vb.odds:.2f}" if vb.odds is not None else "n/a"
-    status = "✅ Validação matemática OK" if vb.validation_status.value == "validated" else f"⚠️ {vb.validation_status.value.upper()}"
-    lines = [
-        "🔥 VALUE BET VALIDADA" if vb.validation_status.value == "validated" else f"🔥 VALUE BET ({vb.validation_status.value})",
-        "",
-        f"🔎 Filtro: {vb.filter_name}",
-        "",
-        f"📈 Overvalue: {ov}",
-        f"🧮 EV calculado: {ev}",
-        "",
-        f"🏆 {vb.sport or ''}".strip(),
-        vb.event or "",
-        "",
-        f"📊 {vb.market_raw or ''}",
-        "",
-        f"🏦 {vb.bookmaker or ''}",
-        f"💰 Odd: {odd}",
-        f"🎯 Probabilidade: {prob}",
-        "",
-        f"🕐 Capturada: {_hhmmss(vb.captured_at, tz)}",
-        "",
-        "Odds capturadas às " + _hhmmss(vb.captured_at, tz) + " — podem já não estar disponíveis.",
-        "",
-        status,
-    ]
-    if vb.validation_reasons:
-        lines.append("Motivos: " + "; ".join(vb.validation_reasons))
-    return "\n".join(lines)
+    return "\n".join(
+        [
+            "🔥 Value Bet",
+            f"🔎 Filtro: {vb.filter_name}",
+            f"📈 ROI: {roi_s}",
+            f"🏆 Desporto: {vb.sport or 'n/a'}",
+            f"🏟️ Liga: {vb.competition or 'n/a'}",
+            f"⚔️ Equipas: {vb.event or 'n/a'}",
+            f"📊 Linha: {vb.market_raw or 'n/a'}",
+            f"🏦 Casa de Apostas: {vb.bookmaker or 'n/a'}",
+            f"💰 Odd: {odd}",
+            f"🎯 Probabilidade: {prob}",
+            f"🕐 Hora da Captura: {_hhmmss(vb.captured_at, tz)}",
+        ]
+    )
 
 
 def format_arbitrage_alert(arb: Arbitrage, *, tz: str = "Europe/Lisbon", currency: str = "EUR") -> str:
-    site = format_percent(arb.site_profit) if arb.site_profit is not None else "n/a"
-    roi = format_percent(arb.calculated_profit) if arb.calculated_profit is not None else "n/a"
-    inv = format_percent(arb.inverse_probability_sum) if arb.inverse_probability_sum is not None else "n/a"
-    title = "💰 ARBITRAGE VALIDADA" if arb.validation_status.value == "validated" else f"💰 ARBITRAGE ({arb.validation_status.value})"
+    del currency  # unused in compact format
+    roi = arb.calculated_profit if arb.calculated_profit is not None else arb.site_profit
+    roi_s = format_percent(roi, signed=True) if roi is not None else "n/a"
+    sport = arb.sport or next((o.sport for o in arb.outcomes if o.sport), None) or "n/a"
+    liga = arb.competition or next((o.tournament for o in arb.outcomes if o.tournament), None) or "n/a"
     lines = [
-        title,
-        "",
+        "💰 SureBet",
         f"🔎 Filtro: {arb.filter_name}",
-        "",
-        f"📈 Profit SureBet: {site}",
-        f"🧮 ROI calculado: {roi}",
-        f"📊 Soma implícita: {inv}",
-        "",
-        f"⚽ {arb.event or ''}",
-        "",
+        f"📈 ROI: {roi_s}",
+        f"🏆 Desporto: {sport}",
+        f"🏟️ Liga: {liga}",
+        f"⚔️ Equipas: {arb.event or 'n/a'}",
     ]
-    for idx, o in enumerate(arb.outcomes, start=1):
+    for o in arb.outcomes:
+        odd = f"{o.odds:.2f}"
         lines.extend(
             [
-                f"{idx}️⃣ {o.bookmaker}",
-                o.market_raw,
-                f"Odd: {o.odds:.2f}",
-                "",
+                f"📊 Linha: {o.market_raw or 'n/a'}",
+                f"🏦 Casa de Apostas: {o.bookmaker or 'n/a'}",
+                f"💰 Odd: {odd}",
             ]
         )
-    if arb.stakes:
-        lines.append(f"💵 Exemplo para {arb.stakes.total} {currency}:")
-        lines.append("")
-        for leg in arb.stakes.legs:
-            lines.append(f"{leg.bookmaker}: {leg.stake} {currency}")
-        lines.extend(
-            [
-                "",
-                f"Retorno mínimo: {arb.stakes.guaranteed_payout} {currency}",
-                f"Lucro estimado: {arb.stakes.profit} {currency}",
-                "",
-            ]
-        )
-    lines.extend(
-        [
-            f"🕐 Odds capturadas: {_hhmmss(arb.captured_at, tz)}",
-            "",
-            "Odds capturadas neste instante — podem já não estar disponíveis.",
-            "",
-            "✅ Arbitragem matematicamente validada"
-            if arb.validation_status.value == "validated"
-            else f"⚠️ {arb.validation_status.value.upper()}",
-        ]
-    )
-    if arb.validation_reasons:
-        lines.append("Motivos: " + "; ".join(arb.validation_reasons))
+    lines.append(f"🕐 Hora da Captura: {_hhmmss(arb.captured_at, tz)}")
     return "\n".join(lines)
 
 
 def format_error_alert(reason: str) -> str:
-    return (
-        "⚠️ SureBet Monitor\n\n"
-        "Automação interrompida.\n"
-        f"Motivo: {reason}"
-    )
+    return f"SureBet Monitor\nErro: {reason}"
