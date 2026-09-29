@@ -43,13 +43,11 @@ def detect_protections(page: Page) -> None:
 
 
 def is_authenticated(page: Page) -> bool:
+    # Public pages also have #filter_current_id — do NOT treat that as logged-in.
     if page.locator(S.AUTH_SIGNOUT).count() > 0:
         return True
-    if page.locator(S.AUTH_FILTER_SELECT).count() > 0:
-        # filter select exists on product pages when logged in with saved filters
-        return True
     text = _page_text(page)
-    if S.LOGIN_PAGE_TEXT in text and page.locator(S.LOGIN_PASSWORD).count() > 0:
+    if S.LOGIN_PAGE_TEXT in text:
         return False
     return False
 
@@ -86,21 +84,25 @@ def login(page: Page, settings: Settings) -> None:
 
     try:
         page.wait_for_load_state("domcontentloaded", timeout=30_000)
+        # wait for session cookie / redirect to settle
+        page.wait_for_timeout(1500)
     except PlaywrightTimeout as e:
         raise TimeoutError_("Timeout after login submit") from e
 
     detect_protections(page)
 
-    # Confirm real auth — not just click
-    # Prefer landing that shows sign out or product filters
     page.goto(f"{base}{S.VALUEBETS_PATH}", wait_until="domcontentloaded", timeout=45_000)
     detect_protections(page)
 
+    try:
+        page.wait_for_selector(S.AUTH_SIGNOUT, timeout=20_000)
+    except PlaywrightTimeout:
+        pass
+
     if not is_authenticated(page):
-        # wrong password often redisplays form
         body = _page_text(page)
         if re.search(r"inv[aá]lid|incorret|wrong password|authentication", body, re.I):
             raise AuthFailed("Invalid credentials")
-        raise AuthFailed("Authentication not confirmed after login")
+        raise AuthFailed("Authentication not confirmed after login (no sign-out link)")
 
     log.info("Login successful")

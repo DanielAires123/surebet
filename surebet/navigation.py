@@ -41,13 +41,22 @@ def select_filter(page: Page, surebet_filter_id: str, expected_name: str) -> Non
     if sel.count() == 0:
         raise FilterNotFound("Filter select #filter_current_id not found")
 
-    option = sel.locator(f'option[value="{surebet_filter_id}"]')
-    if option.count() == 0:
-        # fallback by visible text
-        option = sel.locator("option", has_text=expected_name)
-        if option.count() == 0:
-            raise FilterNotFound(f"Filter id={surebet_filter_id} name={expected_name} not in select")
+    # Wait for saved presets to appear (logged-in).
+    try:
+        page.wait_for_selector(
+            f'{S.FILTER_SELECT} option[value="{surebet_filter_id}"]',
+            timeout=20_000,
+        )
+    except PlaywrightTimeout:
+        available = []
+        for opt in sel.locator("option").all():
+            available.append(f"{opt.get_attribute('value')}={opt.inner_text().strip()}")
+        raise FilterNotFound(
+            f"Filter id={surebet_filter_id} name={expected_name} not in select. "
+            f"Available: {available[:20]}"
+        )
 
+    option = sel.locator(f'option[value="{surebet_filter_id}"]')
     value = option.first.get_attribute("value")
     if not value or value in {"separator", "-2"}:
         raise FilterNotFound(f"Invalid filter option value for {expected_name}")
@@ -55,7 +64,6 @@ def select_filter(page: Page, surebet_filter_id: str, expected_name: str) -> Non
     current = sel.input_value()
     if current != value:
         sel.select_option(value=value)
-        # UI may auto-apply; also click Filtrar if present
         apply_btn = page.locator(S.FILTER_APPLY)
         if apply_btn.count() > 0:
             apply_btn.first.click()
@@ -66,7 +74,6 @@ def select_filter(page: Page, surebet_filter_id: str, expected_name: str) -> Non
         else:
             page.wait_for_timeout(1500)
 
-    # confirm selection
     selected = sel.input_value()
     if selected != value:
         raise FilterNotFound(f"Filter did not stick: want {value}, got {selected}")
