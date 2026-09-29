@@ -7,7 +7,6 @@ import logging
 import time
 from datetime import datetime, timezone
 from decimal import Decimal
-from pathlib import Path
 from typing import Optional
 
 from playwright.sync_api import Page
@@ -27,12 +26,15 @@ from surebet.exceptions import (
 from surebet.filters import enabled_filters, load_filters
 from surebet.models import (
     AppConfig,
+    Arbitrage,
     FilterConfig,
     FilterRunStats,
+    PendingAlert,
     ResultsState,
     RunStats,
     ScreenshotMode,
     ValidationStatus,
+    ValueBet,
 )
 from surebet.navigation import (
     select_filter,
@@ -42,7 +44,17 @@ from surebet.navigation import (
 from surebet.state import StateStore
 from surebet.valuebets import extract_valuebets
 from telegram.bot import TelegramBot
-from telegram.formatting import format_arbitrage_alert, format_error_alert, format_valuebet_alert
+from telegram.callbacks import poll_callbacks
+from telegram.formatting import (
+    arbitrage_url_buttons,
+    build_alert_keyboard,
+    format_arbitrage_alert,
+    format_error_alert,
+    format_run_summary,
+    format_valuebet_alert,
+    short_id_from_hash,
+    valuebet_url_buttons,
+)
 
 log = logging.getLogger(__name__)
 
@@ -60,6 +72,76 @@ def _want_overview_shot(mode: ScreenshotMode, reasons: list[str]) -> bool:
     return False
 
 
+def _item_roi(item: Arbitrage | ValueBet) -> Decimal:
+    if isinstance(item, ValueBet):
+        v = item.calculated_ev if item.calculated_ev is not None else item.site_overvalue
+    else:
+        v = item.calculated_profit if item.calculated_profit is not None else item.site_profit
+    return v if v is not None else Decimal("-999")
+
+
+def _thread_for(settings: Settings, source: str) -> str | None:
+    if source == "valuebet":
+        return settings.telegram_valuebet_thread_id or settings.telegram_arbitrage_thread_id
+    return settings.telegram_arbitrage_thread_id or settings.telegram_valuebet_thread_id
+
+
+def _pending_from_valuebet(
+    vb: ValueBet,
+    *,
+    chat_id: str,
+    message_id: int,
+    thread_id: str | None,
+) -> PendingAlert:
+    assert vb.identity_hash
+    return PendingAlert(
+        short_id=short_id_from_hash(vb.identity_hash),
+        identity_hash=vb.identity_hash,
+        source="valuebet",
+        filter_id=vb.filter_id,
+        filter_name=vb.filter_name,
+        event=vb.event,
+        sport=vb.sport,
+        market_raw=vb.market_raw,
+        bookmaker=vb.bookmaker,
+        odds=[vb.odds] if vb.odds is not None else None,
+        roi=_item_roi(vb) if _item_roi(vb) > Decimal("-900") else None,
+        chat_id=chat_id,
+        message_id=message_id,
+        thread_id=str(thread_id) if thread_id else None,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+def _pending_from_arb(
+    arb: Arbitrage,
+    *,
+    chat_id: str,
+    message_id: int,
+    thread_id: str | None,
+) -> PendingAlert:
+    assert arb.identity_hash
+    books = " / ".join(o.bookmaker for o in arb.outcomes)
+    markets = " | ".join(o.market_raw for o in arb.outcomes)
+    return PendingAlert(
+        short_id=short_id_from_hash(arb.identity_hash),
+        identity_hash=arb.identity_hash,
+        source="surebet",
+        filter_id=arb.filter_id,
+        filter_name=arb.filter_name,
+        event=arb.event,
+        sport=arb.sport,
+        market_raw=markets,
+        bookmaker=books,
+        odds=[o.odds for o in arb.outcomes],
+        roi=_item_roi(arb) if _item_roi(arb) > Decimal("-900") else None,
+        chat_id=chat_id,
+        message_id=message_id,
+        thread_id=str(thread_id) if thread_id else None,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
 def process_filter(
     page: Page,
     filt: FilterConfig,
@@ -69,9 +151,11 @@ def process_filter(
     state: StateStore,
     bot: TelegramBot,
     dry_run: bool,
+    content_sent_this_run: set[str],
 ) -> FilterRunStats:
     stats = FilterRunStats(filter_id=filt.id, filter_name=filt.name)
     log.info("Filter: %s", filt.name)
+    thread_id = _thread_for(settings, filt.source)
 
     select_filter(
         page,
@@ -104,7 +188,6 @@ def process_filter(
     log.info("Parsed: %s", parse_stats.parsed)
 
     if parse_stats.raw > 0 and parse_stats.success_rate < settings.min_parse_success_rate:
-        # Real extract failures only (threshold skips already count as parsed)
         raise ParserOrLayoutChanged(
             f"parse_success_rate={parse_stats.success_rate} < {settings.min_parse_success_rate} "
             f"(raw={parse_stats.raw} parsed={parse_stats.parsed} failed={parse_stats.failed})"
@@ -128,8 +211,17 @@ def process_filter(
         if not filt.send_results:
             continue
 
-        # live filter
         if not g.allow_live_events and item.event_datetime and item.event_datetime <= datetime.now(timezone.utc):
+            continue
+
+        # cross-filter dedupe (same bet in 0.5UN + 1UN)
+        ch = getattr(item, "content_hash", None)
+        if ch and (ch in content_sent_this_run or state.content_sent_recently(ch)):
+            stats.duplicate += 1
+            if filt.source == "valuebet":
+                state.touch_valuebet(item, sent=False)
+            else:
+                state.touch_arbitrage(item, sent=False)
             continue
 
         prev = state.get(item.identity_hash or "")
@@ -164,7 +256,6 @@ def process_filter(
                 state.touch_arbitrage(item, sent=False)
             continue
 
-        # ponytail: soft revalidate — skip if record vanished from DOM
         if g.revalidate_before_send and item.event_id:
             still = page.locator(f'tbody[data-id="{item.event_id}"]')
             if still.count() == 0:
@@ -173,7 +264,9 @@ def process_filter(
 
         pending.append((item, reason))
 
-    # One overview photo of the full table, then text-only alerts.
+    # Highest ROI first — cap hits the weak ones
+    pending.sort(key=lambda pair: _item_roi(pair[0]), reverse=True)
+
     if pending and _want_overview_shot(filt.screenshot_mode, [r for _, r in pending]):
         shot_path = settings.screenshots_dir / f"overview_{filt.id}.png"
         if dry_run:
@@ -181,7 +274,8 @@ def process_filter(
             stats.screenshots += 1
         else:
             take_results_screenshot(page, str(shot_path), filt.source)
-            if bot.send_photo(shot_path, caption=filt.name):
+            mid = bot.send_photo(shot_path, caption=filt.name, message_thread_id=thread_id)
+            if mid is not None:
                 stats.screenshots += 1
             else:
                 log.error("Telegram overview photo failed for %s", filt.name)
@@ -194,28 +288,43 @@ def process_filter(
         if dry_run:
             log.info("[dry-run] would send %s", item.identity_hash)
             stats.sent += 1
+            if getattr(item, "content_hash", None):
+                content_sent_this_run.add(item.content_hash)
             continue
 
         if filt.source == "valuebet":
             text = format_valuebet_alert(item, tz=g.display_timezone)
+            urls = valuebet_url_buttons(item)
         else:
             text = format_arbitrage_alert(item, tz=g.display_timezone, currency=g.currency)
+            urls = arbitrage_url_buttons(item)
 
-        ok = bot.send_message(text)
-        if not ok:
+        sid = short_id_from_hash(item.identity_hash or "")
+        keyboard = build_alert_keyboard(short_id=sid, url_buttons=urls)
+        mid = bot.send_message(text, message_thread_id=thread_id, reply_markup=keyboard)
+        if mid is None:
             log.error("Telegram send_message failed for %s", item.event_id)
-
-        if ok:
-            stats.sent += 1
-            if filt.source == "valuebet":
-                state.touch_valuebet(item, sent=True)
-            else:
-                state.touch_arbitrage(item, sent=True)
-        else:
             if filt.source == "valuebet":
                 state.touch_valuebet(item, sent=False)
             else:
                 state.touch_arbitrage(item, sent=False)
+            continue
+
+        stats.sent += 1
+        if getattr(item, "content_hash", None):
+            content_sent_this_run.add(item.content_hash)
+        if filt.source == "valuebet":
+            state.touch_valuebet(item, sent=True)
+            state.register_pending(
+                _pending_from_valuebet(
+                    item, chat_id=bot.chat_id, message_id=mid, thread_id=thread_id
+                )
+            )
+        else:
+            state.touch_arbitrage(item, sent=True)
+            state.register_pending(
+                _pending_from_arb(item, chat_id=bot.chat_id, message_id=mid, thread_id=thread_id)
+            )
 
     log.info("Validated: %s", stats.validated)
     log.info("Unverified: %s", stats.unverified)
@@ -235,18 +344,20 @@ def run_monitor(
     started = time.time()
     app = load_filters(settings.filters_path)
     filters = enabled_filters(app, filter_id)
+    # surebets first (faster odds death), then valuebets
+    filters = sorted(filters, key=lambda f: 0 if f.source == "surebet" else 1)
     state = StateStore(settings.state_path)
     state.load()
 
     bot = TelegramBot(
         settings.telegram_bot_token,
         settings.telegram_chat_id,
-        message_thread_id=settings.telegram_message_thread_id,
         max_alerts_per_run=app.global_.telegram_max_alerts_per_run,
         dry_run=dry_run,
     )
 
     run = RunStats(filters_configured=len(app.filters), filters_processed=0)
+    content_sent_this_run: set[str] = set()
     log.info("Starting monitor")
 
     try:
@@ -291,6 +402,7 @@ def run_monitor(
                         state=state,
                         bot=bot,
                         dry_run=dry_run,
+                        content_sent_this_run=content_sent_this_run,
                     )
                     fr.ok = True
                     run.successful += 1
@@ -335,11 +447,35 @@ def run_monitor(
         _alert_error(bot, state, settings, str(e))
         return 1
 
-    if not dry_run:
-        state.save()
-
     run.duration_seconds = time.time() - started
     _log_summary(run)
+
+    # Summary + drain any pending Apostei/Não clicks
+    if not dry_run:
+        summary = format_run_summary(
+            filters_ok=run.successful,
+            filters_failed=run.failed,
+            raw=run.raw,
+            sent=run.sent,
+            new=run.new,
+            duration_s=run.duration_seconds,
+            open_bets=state.open_bets_count(),
+        )
+        bot.send_message(
+            summary,
+            message_thread_id=settings.telegram_arbitrage_thread_id,
+            count_toward_cap=False,
+        )
+        state.save()
+        try:
+            poll_callbacks(
+                settings=settings,
+                state=state,
+                dry_run=False,
+                default_stake=Decimal("10"),
+            )
+        except Exception:
+            log.exception("poll_callbacks after monitor failed")
 
     if filters and run.failed == len(filters):
         return 1
@@ -349,7 +485,12 @@ def run_monitor(
 def _alert_error(bot: TelegramBot, state: StateStore, settings: Settings, reason: str) -> None:
     h = hashlib.sha256(reason.encode()).hexdigest()
     if state.should_send_error(h, settings.error_alert_cooldown_minutes):
-        if bot.send_message(format_error_alert(reason)):
+        mid = bot.send_message(
+            format_error_alert(reason),
+            message_thread_id=settings.telegram_arbitrage_thread_id,
+            count_toward_cap=False,
+        )
+        if mid is not None:
             state.mark_error_sent(h)
             state.save()
 

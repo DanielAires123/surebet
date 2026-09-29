@@ -12,10 +12,12 @@ from playwright.sync_api import Page
 
 from surebet import selectors as S
 from surebet.config import Settings
-from surebet.deduplication import arbitrage_identity_hash
+from surebet.deduplication import arbitrage_content_hash, arbitrage_identity_hash
+from surebet.dom_links import first_href
 from surebet.models import ArbOutcome, Arbitrage, FilterConfig, ParseStats
 from surebet.normalization import normalize_bookmaker, normalize_event, parse_market
 from surebet.percent import parse_percent
+from surebet.text_clean import clean_competition
 from surebet.validation import attach_bookmakers, calculate_stakes, validate_arbitrage
 
 log = logging.getLogger(__name__)
@@ -86,6 +88,10 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
                 if odds is None:
                     raise ValueError("missing odds")
 
+                bookmaker_url = first_href(leg.locator(S.LEG_BOOKMAKER), settings.base_url)
+                event_url = first_href(leg.locator(S.LEG_EVENT), settings.base_url)
+                odds_url = first_href(leg.locator(S.LEG_ODDS), settings.base_url)
+
                 parts = parse_market(market_raw or "")
                 _, book_display = normalize_bookmaker(bookmaker or "")
                 outcomes.append(
@@ -96,8 +102,11 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
                         odds=odds,
                         sport=sport,
                         event=normalize_event(matchup or event or "") or None,
-                        tournament=tournament,
+                        tournament=clean_competition(tournament),
                         market_parts=parts,
+                        bookmaker_url=bookmaker_url,
+                        event_url=event_url,
+                        odds_url=odds_url,
                     )
                 )
                 if matchup or event:
@@ -108,6 +117,7 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
             # representative event: prefer fw-bold matchup
             event_name = events[0] if events else None
             sport_name = sports[0] if sports else None
+            competition = next((o.tournament for o in outcomes if o.tournament), None)
 
             # common market fields when compatible
             market_type = outcomes[0].market_parts.market_type if outcomes[0].market_parts else "unknown"
@@ -120,6 +130,7 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
                 event_id=data_id,
                 sport=sport_name,
                 event=event_name,
+                competition=competition,
                 market_type=market_type,
                 period=period,
                 line=line,
@@ -151,6 +162,7 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
                 arb.stakes = attach_bookmakers(plan, [o.bookmaker for o in outcomes])
 
             arb.identity_hash = arbitrage_identity_hash(arb)
+            arb.content_hash = arbitrage_content_hash(arb)
             stats.parsed += 1  # DOM row extracted OK (threshold filter is separate)
 
             if filt.min_profit is not None and (arb.site_profit is None or arb.site_profit < filt.min_profit):

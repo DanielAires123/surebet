@@ -19,7 +19,8 @@ class Settings:
     surebet_password: str
     telegram_bot_token: str
     telegram_chat_id: str
-    telegram_message_thread_id: str | None = None  # forum topic id (e.g. Arbitrage)
+    telegram_arbitrage_thread_id: str | None = None  # forum topic: Arbitrage
+    telegram_valuebet_thread_id: str | None = None  # forum topic: Value Bets
     base_url: str = "https://pt.surebet.com"
     valuebet_validation_tolerance_pp: Decimal = Decimal("0.5")
     arbitrage_epsilon: Decimal = Decimal("0.001")
@@ -47,7 +48,10 @@ def load_settings(*, require_credentials: bool = True) -> Settings:
     password = os.getenv("SUREBET_PASSWORD", "")
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat = os.getenv("TELEGRAM_CHAT_ID", "")
-    thread = os.getenv("TELEGRAM_MESSAGE_THREAD_ID", "").strip() or None
+    # legacy single-thread fallback → arbitrage topic
+    legacy = os.getenv("TELEGRAM_MESSAGE_THREAD_ID", "").strip() or None
+    arb_thread = os.getenv("TELEGRAM_ARBITRAGE_THREAD_ID", "").strip() or legacy
+    vb_thread = os.getenv("TELEGRAM_VALUEBET_THREAD_ID", "").strip() or None
     has_storage = bool(
         os.getenv("SUREBET_STORAGE_STATE_B64", "").strip()
         or os.getenv("SUREBET_STORAGE_STATE_PATH", "").strip()
@@ -64,7 +68,8 @@ def load_settings(*, require_credentials: bool = True) -> Settings:
         surebet_password=password,
         telegram_bot_token=token,
         telegram_chat_id=chat,
-        telegram_message_thread_id=thread,
+        telegram_arbitrage_thread_id=arb_thread,
+        telegram_valuebet_thread_id=vb_thread,
         base_url=os.getenv("SUREBET_BASE_URL", "https://pt.surebet.com").rstrip("/"),
         valuebet_validation_tolerance_pp=_dec("VALUEBET_VALIDATION_TOLERANCE_PP", "0.5"),
         arbitrage_epsilon=_dec("ARBITRAGE_EPSILON", "0.001"),

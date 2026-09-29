@@ -64,11 +64,22 @@ def select_filter(
     then the page navigates back to /valuebets|/surebets with the preset applied.
 
     So we must: open product → select_option (native change) → wait for POST+reload.
+    Skip open_product when already on the same product path (saves a full navigation).
     """
     if not surebet_filter_id or surebet_filter_id in {"separator", "-2"}:
         raise FilterNotFound(f"Invalid filter option value for {expected_name}")
 
-    open_product(page, settings, source)
+    path = product_path(source)
+    already = path in (page.url or "")
+    if already:
+        try:
+            page.wait_for_selector(product_table(source), timeout=5_000)
+            page.wait_for_selector(S.FILTER_SELECT, state="attached", timeout=5_000)
+            log.info("Already on %s — skip goto", path)
+        except PlaywrightTimeout:
+            already = False
+    if not already:
+        open_product(page, settings, source)
 
     try:
         page.wait_for_selector(S.FILTER_SELECT, state="attached", timeout=20_000)

@@ -40,9 +40,9 @@ jobs:
         run: |
           git fetch origin bot-state:bot-state || true
           if git show-ref --verify --quiet refs/heads/bot-state; then
-            git show bot-state:state.json > data/state.json || echo '{"opportunities":[],"error_alerts":{}}' > data/state.json
+            git show bot-state:state.json > data/state.json || echo '{"opportunities":[],"error_alerts":{},"pending_alerts":{},"bets":{},"telegram_update_offset":0}' > data/state.json
           else
-            echo '{"opportunities":[],"error_alerts":{}}' > data/state.json
+            echo '{"opportunities":[],"error_alerts":{},"pending_alerts":{},"bets":{},"telegram_update_offset":0}' > data/state.json
           fi
 
       - name: Set up Python 3.12
@@ -84,6 +84,9 @@ jobs:
           SUREBET_PASSWORD: ${{ secrets.SUREBET_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_ARBITRAGE_THREAD_ID: ${{ secrets.TELEGRAM_ARBITRAGE_THREAD_ID }}
+          TELEGRAM_VALUEBET_THREAD_ID: ${{ secrets.TELEGRAM_VALUEBET_THREAD_ID }}
+          # legacy fallback if ARBITRAGE secret not set yet
           TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
           SUREBET_BASE_URL: https://pt.surebet.com
         run: |

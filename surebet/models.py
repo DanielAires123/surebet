@@ -59,6 +59,9 @@ class ArbOutcome(BaseModel):
     event: Optional[str] = None
     tournament: Optional[str] = None
     market_parts: Optional[MarketParts] = None
+    bookmaker_url: Optional[str] = None
+    event_url: Optional[str] = None
+    odds_url: Optional[str] = None
 
 
 class StakeLeg(BaseModel):
@@ -105,7 +108,12 @@ class ValueBet(BaseModel):
     site_overvalue: Optional[Decimal] = None
     calculated_ev: Optional[Decimal] = None
 
+    bookmaker_url: Optional[str] = None
+    event_url: Optional[str] = None
+    odds_url: Optional[str] = None
+
     identity_hash: Optional[str] = None
+    content_hash: Optional[str] = None  # cross-filter dedupe (no filter_id)
     captured_at: Optional[datetime] = None
     raw: dict[str, Any] = Field(default_factory=dict)
 
@@ -137,6 +145,7 @@ class Arbitrage(BaseModel):
     stakes: Optional[StakePlan] = None
 
     identity_hash: Optional[str] = None
+    content_hash: Optional[str] = None
     captured_at: Optional[datetime] = None
     raw: dict[str, Any] = Field(default_factory=dict)
 
@@ -177,6 +186,7 @@ class AppConfig(BaseModel):
 
 class OpportunityState(BaseModel):
     identity_hash: str
+    content_hash: Optional[str] = None
     last_odds: Optional[list[Decimal]] = None
     last_profit: Optional[Decimal] = None
     last_overvalue: Optional[Decimal] = None
@@ -184,6 +194,50 @@ class OpportunityState(BaseModel):
     last_seen_at: Optional[datetime] = None
     last_sent_at: Optional[datetime] = None
     validation_status: Optional[str] = None
+
+
+class PendingAlert(BaseModel):
+    """Maps Telegram message → opportunity for Apostei/Não callbacks."""
+
+    short_id: str  # first 16 of identity_hash (callback_data budget)
+    identity_hash: str
+    source: Literal["valuebet", "surebet"]
+    filter_id: str
+    filter_name: str
+    event: Optional[str] = None
+    sport: Optional[str] = None
+    market_raw: Optional[str] = None
+    bookmaker: Optional[str] = None
+    odds: Optional[list[Decimal]] = None
+    roi: Optional[Decimal] = None
+    chat_id: str
+    message_id: int
+    thread_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+class TrackedBet(BaseModel):
+    """User-confirmed bet — Bzzoiro settle comes later."""
+
+    id: str
+    identity_hash: str
+    source: Literal["valuebet", "surebet"]
+    status: Literal["open", "skipped", "settled"] = "open"
+    filter_id: str = ""
+    filter_name: str = ""
+    event: Optional[str] = None
+    sport: Optional[str] = None
+    market_raw: Optional[str] = None
+    bookmaker: Optional[str] = None
+    odds: Optional[list[Decimal]] = None
+    roi: Optional[Decimal] = None
+    stake: Optional[Decimal] = None
+    currency: str = "EUR"
+    telegram_message_id: Optional[int] = None
+    confirmed_at: Optional[datetime] = None
+    settled_at: Optional[datetime] = None
+    outcome: Optional[Literal["won", "lost", "void", "push"]] = None
+    profit: Optional[Decimal] = None
 
 
 class ParseStats(BaseModel):

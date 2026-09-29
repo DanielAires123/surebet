@@ -64,7 +64,8 @@ Renova o secret quando a sessão expirar (Telegram: `AUTH_FAILED` / storage expi
 | `SUREBET_PASSWORD` | password SureBet |
 | `TELEGRAM_BOT_TOKEN` | token BotFather |
 | `TELEGRAM_CHAT_ID` | id do chat |
-| `TELEGRAM_MESSAGE_THREAD_ID` | (opcional) id do tópico forum |
+| `TELEGRAM_ARBITRAGE_THREAD_ID` | tópico forum Arbitrage |
+| `TELEGRAM_VALUEBET_THREAD_ID` | tópico forum Value Bets |
 
 Nunca commits estes valores nem `storage_state.json`.
 

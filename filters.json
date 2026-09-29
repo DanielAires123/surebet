@@ -1,6 +1,6 @@
 {
   "global": {
-    "send_only_validated": true,
+    "send_only_validated": false,
     "calculate_stakes": true,
     "default_total_stake": 100,
     "currency": "EUR",
@@ -39,7 +39,7 @@
       "name": "0.7UN",
       "surebet_filter_id": "34129105",
       "source": "valuebet",
-      "enabled": true,
+      "enabled": false,
       "send_results": true,
       "screenshot_mode": "on_new",
       "min_overvalue": 0.05,

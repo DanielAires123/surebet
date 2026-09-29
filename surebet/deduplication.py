@@ -38,6 +38,24 @@ def valuebet_identity_hash(vb: ValueBet) -> str:
     )
 
 
+def valuebet_content_hash(vb: ValueBet) -> str:
+    """Same bet across filters (excludes filter_id) — cross-filter dedupe."""
+    event_key = vb.event_id or normalize_event(vb.event or "")
+    book_can, _ = normalize_bookmaker(vb.bookmaker or "")
+    line = "" if vb.line is None else str(vb.line)
+    team = "" if vb.team is None else str(vb.team)
+    participant = vb.participant or team
+    return _sha(
+        event_key,
+        book_can,
+        vb.market_type or "unknown",
+        vb.period or "",
+        line,
+        vb.selection or "",
+        participant,
+    )
+
+
 def arbitrage_identity_hash(arb: Arbitrage) -> str:
     event_key = arb.event_id or normalize_event(arb.event or "")
     line = "" if arb.line is None else str(arb.line)
@@ -66,6 +84,28 @@ def arbitrage_identity_hash(arb: Arbitrage) -> str:
         line,
         *legs_sorted,
     )
+
+
+def arbitrage_content_hash(arb: Arbitrage) -> str:
+    event_key = arb.event_id or normalize_event(arb.event or "")
+    line = "" if arb.line is None else str(arb.line)
+    legs = []
+    for o in arb.outcomes:
+        book_can, _ = normalize_bookmaker(o.bookmaker)
+        mp = o.market_parts
+        legs.append(
+            "|".join(
+                [
+                    book_can,
+                    (mp.selection if mp and mp.selection else o.selection) or "",
+                    (mp.market_type if mp else "") or "",
+                    (mp.period if mp and mp.period else "") or "",
+                    "" if not mp or mp.line is None else str(mp.line),
+                    normalize_event(o.market_raw or ""),
+                ]
+            )
+        )
+    return _sha(event_key, arb.market_type or "unknown", arb.period or "", line, *sorted(legs))
 
 
 def should_resend_valuebet(
