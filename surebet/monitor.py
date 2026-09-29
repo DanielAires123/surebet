@@ -180,14 +180,20 @@ def process_filter(
         if g.revalidate_before_send and item.event_id:
             still = page.locator(f'tbody[data-id="{item.event_id}"]')
             if still.count() == 0:
+                log.info("Skip send (gone from DOM): %s", item.event_id)
                 continue
+
+        if dry_run:
+            log.info("[dry-run] would send %s", item.identity_hash)
+            stats.sent += 1
+            continue
 
         if filt.source == "valuebet":
             text = format_valuebet_alert(item, tz=g.display_timezone)
         else:
             text = format_arbitrage_alert(item, tz=g.display_timezone, currency=g.currency)
 
-        shot_path = settings.screenshots_dir / f"{item.identity_hash[:16]}.png"
+        shot_path = settings.screenshots_dir / f"{(item.identity_hash or 'x')[:16]}.png"
         took = _maybe_screenshot(
             page,
             filt,
@@ -198,6 +204,8 @@ def process_filter(
         )
 
         ok = bot.send_message(text)
+        if not ok:
+            log.error("Telegram send_message failed for %s", item.event_id)
         if ok and took and shot_path.exists():
             bot.send_photo(shot_path, caption=filt.name)
             stats.screenshots += 1
@@ -209,9 +217,9 @@ def process_filter(
         if ok:
             stats.sent += 1
             if filt.source == "valuebet":
-                state.touch_valuebet(item, sent=not dry_run)
+                state.touch_valuebet(item, sent=True)
             else:
-                state.touch_arbitrage(item, sent=not dry_run)
+                state.touch_arbitrage(item, sent=True)
         else:
             if filt.source == "valuebet":
                 state.touch_valuebet(item, sent=False)

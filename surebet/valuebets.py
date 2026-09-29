@@ -73,14 +73,17 @@ def extract_valuebets(page: Page, filt: FilterConfig, settings: Settings) -> tup
                 if market_raw:
                     market_raw = _strip_html_text(market_raw)
 
-            # event_id from class event-XXX or tournament [id]
+            # data-id is the valuebet record id (e.g. 1taGhg). Do NOT replace with
+            # td.event's event-XXX — revalidate looks up tbody[data-id=...] and that
+            # would miss every row (Sent: 0 with New: N).
             event_id = data_id
+            event_cls_id = None
             event_td = el.locator("td.event")
             if event_td.count() > 0:
                 cls = event_td.first.get_attribute("class") or ""
                 m = re.search(r"event-([A-Za-z0-9_\-]+)", cls)
                 if m:
-                    event_id = m.group(1)
+                    event_cls_id = m.group(1)
 
             parts = parse_market(market_raw or "")
             _, book_display = normalize_bookmaker(bookmaker or "")
@@ -103,7 +106,11 @@ def extract_valuebets(page: Page, filt: FilterConfig, settings: Settings) -> tup
                 fair_probability=probability,
                 site_overvalue=site_ov,
                 captured_at=now,
-                raw={"data_start_at": start_at, "signature": el.get_attribute("data-signature")},
+                raw={
+                    "data_start_at": start_at,
+                    "signature": el.get_attribute("data-signature"),
+                    "event_class_id": event_cls_id,
+                },
             )
 
             if start_at and start_at.isdigit():
