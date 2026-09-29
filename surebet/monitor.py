@@ -35,7 +35,6 @@ from surebet.models import (
     ValidationStatus,
 )
 from surebet.navigation import (
-    open_product,
     select_filter,
     take_results_screenshot,
     wait_for_results,
@@ -88,8 +87,13 @@ def process_filter(
     stats = FilterRunStats(filter_id=filt.id, filter_name=filt.name)
     log.info("Filter: %s", filt.name)
 
-    open_product(page, settings, filt.source)
-    select_filter(page, filt.surebet_filter_id, filt.name)
+    select_filter(
+        page,
+        filt.surebet_filter_id,
+        filt.name,
+        settings=settings,
+        source=filt.source,
+    )
     result_state = wait_for_results(page, filt.source)
 
     if result_state == ResultsState.TIMEOUT:

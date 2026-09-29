@@ -21,7 +21,7 @@ Run on GitHub Actions ~every 15 minutes. One Chromium, one login, one session. F
 | Approach | Playwright DOM scrape only; math validation offline |
 | Locale / base | `https://pt.surebet.com` (`SUREBET_BASE_URL` overridable) |
 | Page navigation | Only `/surebets` and `/valuebets` |
-| Filter apply | Select `#filter_current_id` by `surebet_filter_id` (option value). Do **not** `goto /filters/{id}/choose` as primary navigation (cold navigation returned 404). The choose URL may appear in Network as a side-effect of the UI select; we do not depend on parsing its body. |
+| Filter apply | Primary: same URL the UI hits — `GET /filters/{surebet_filter_id}/choose?product=valuebets\|surebets&return_to=/...` (session cookies required; unauthenticated cold goto can 404). Fallback: drive `#filter_current_id` then `location.assign(choose URL)`. |
 | Filter IDs | From authenticated DOM dump (2026-09-29) |
 | Conservatism | Doubt → `unverified`; CAPTCHA → stop; missing data → `None` |
 
