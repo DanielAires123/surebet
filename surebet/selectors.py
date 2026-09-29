@@ -15,22 +15,25 @@ AUTH_SIGNOUT = 'a[href="/users/sign_out"]'
 AUTH_FILTER_SELECT = "#filter_current_id"
 LOGIN_PAGE_TEXT = "Fazer login"
 
-# Anti-bot / CAPTCHA hints (text/DOM presence — never solve)
-CAPTCHA_TEXT_HINTS = (
-    "captcha",
-    "cf-challenge",
-    "challenge-platform",
-    "hcaptcha",
-    "recaptcha",
-    "Access denied",
-    "Just a moment",
+# Anti-bot / CAPTCHA — only strong visible signals (never solve).
+# Do NOT match bare "captcha"/"recaptcha" in full HTML (scripts cause false positives).
+CAPTCHA_VISIBLE_TEXT = (
+    "just a moment",
+    "verify you are human",
+    "checking your browser",
+    "attention required",
+    "access denied",
+    "enable javascript and cookies",
+    "cf-browser-verification",
 )
 ANTI_BOT_SELECTORS = (
     "#challenge-form",
+    "#challenge-running",
     ".cf-browser-verification",
-    "iframe[src*='captcha']",
-    "iframe[src*='recaptcha']",
-    "iframe[src*='hcaptcha']",
+    "iframe[src*='challenges.cloudflare.com']",
+    "iframe[src*='hcaptcha.com']",
+    "iframe[src*='google.com/recaptcha']",
+    "iframe[title*='captcha' i]",
 )
 
 # --- Shared filter sidebar ---

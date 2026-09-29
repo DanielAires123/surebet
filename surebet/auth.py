@@ -28,18 +28,25 @@ def _page_text(page: Page) -> str:
 
 
 def detect_protections(page: Page) -> None:
-    text = _page_text(page).casefold()
-    content = ""
-    try:
-        content = page.content().casefold()
-    except Exception:
-        pass
-    for hint in S.CAPTCHA_TEXT_HINTS:
-        if hint.casefold() in text or hint.casefold() in content:
-            raise CaptchaDetected(f"Protection hint detected: {hint}")
+    """Stop on real anti-bot walls only — ignore script mentions of captcha."""
     for sel in S.ANTI_BOT_SELECTORS:
-        if page.locator(sel).count() > 0:
-            raise AntiBotDetected(f"Anti-bot selector present: {sel}")
+        try:
+            if page.locator(sel).count() > 0:
+                raise AntiBotDetected(f"Anti-bot selector present: {sel}")
+        except AntiBotDetected:
+            raise
+        except Exception:
+            continue
+
+    text = _page_text(page).casefold()
+    # Title-only Cloudflare interstitial
+    try:
+        title = (page.title() or "").casefold()
+    except Exception:
+        title = ""
+    for hint in S.CAPTCHA_VISIBLE_TEXT:
+        if hint in text or hint in title:
+            raise CaptchaDetected(f"Protection hint detected: {hint}")
 
 
 def is_authenticated(page: Page) -> bool:
