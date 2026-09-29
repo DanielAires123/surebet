@@ -61,12 +61,17 @@ def format_filter_caption(
     filter_name: str,
     items: Sequence[Arbitrage | ValueBet],
     *,
+    total_novas: int | None = None,
     max_len: int = TELEGRAM_CAPTION_MAX,
 ) -> str:
-    """Photo caption: `{filtro} — N novas` + compact blocks (Telegram 1024 cap)."""
-    n = len(items)
+    """Photo caption: `{filtro} — N novas` + detail blocks (Telegram 1024 cap).
+
+    `total_novas` is the header count (all novas). `items` are the detail lines
+    (e.g. top 3 with ROI > 5%) — may be empty.
+    """
+    n = total_novas if total_novas is not None else len(items)
     header = f"{filter_name} — {n} nova" if n == 1 else f"{filter_name} — {n} novas"
-    if n == 0:
+    if not items:
         return header
 
     blocks = [_item_block(it) for it in items]
@@ -78,7 +83,7 @@ def format_filter_caption(
         else:
             break
 
-    omitted = n - len(fitted)
+    omitted = len(items) - len(fitted)
     if omitted == 0:
         return "\n\n".join([header, *fitted])
 
@@ -89,7 +94,7 @@ def format_filter_caption(
         if len(text) <= max_len:
             return text
         fitted.pop()
-        omitted = n - len(fitted)
+        omitted = len(items) - len(fitted)
         marker = f"… +{omitted} mais"
 
     text = f"{header}\n\n{marker}"

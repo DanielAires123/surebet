@@ -195,17 +195,17 @@ def process_filter(
 
         pending.append((item, reason))
 
-    # Highest ROI first — Telegram only lists top 3
+    # Highest ROI first — detail lines: top 3 with ROI > 5%; header counts all novas
     pending.sort(key=lambda pair: _item_roi(pair[0]), reverse=True)
     items = [it for it, _ in pending]
-    top = items[:3]
+    top = [it for it in items if _item_roi(it) > Decimal("0.05")][:3]
 
     if pending and _want_overview_shot(filt.screenshot_mode, [r for _, r in pending]):
-        caption = format_filter_caption(filt.name, top)
+        caption = format_filter_caption(filt.name, top, total_novas=len(items))
         shot_path = settings.screenshots_dir / f"overview_{filt.id}.png"
         sent_ok = False
         if dry_run:
-            log.info("[dry-run] would send photo for %s (%s novas)\n%s", filt.name, len(top), caption)
+            log.info("[dry-run] would send photo for %s (%s novas)\n%s", filt.name, len(items), caption)
             sent_ok = True
             stats.screenshots += 1
         else:

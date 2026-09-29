@@ -111,7 +111,7 @@ def test_format_filter_caption_valuebets():
 
 
 def test_format_filter_caption_top_three_only():
-    """Caller passes pre-sorted top-N; caption lists those only."""
+    """Detail lines are top-N; header can show full novas count."""
     items = [
         ValueBet(
             filter_id="f",
@@ -124,12 +124,17 @@ def test_format_filter_caption_top_three_only():
         for i in range(10)
     ]
     top = items[:3]
-    text = format_filter_caption("MAX", top)
-    assert text.startswith("MAX — 3 novas")
+    text = format_filter_caption("MAX", top, total_novas=10)
+    assert text.startswith("MAX — 10 novas")
     assert "Team0" in text and "Team1" in text and "Team2" in text
     assert "Team3" not in text
     assert "… +" not in text
     assert len(text) <= TELEGRAM_CAPTION_MAX
+
+
+def test_format_filter_caption_header_without_details():
+    text = format_filter_caption("MAX", [], total_novas=20)
+    assert text == "MAX — 20 novas"
 
 
 def test_format_filter_caption_truncates():
