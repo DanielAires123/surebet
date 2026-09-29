@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from surebet.models import Arbitrage, FilterRunStats, ValueBet
+from surebet.models import Arbitrage, ValueBet
 from surebet.percent import format_percent
 
 TELEGRAM_CAPTION_MAX = 1024
@@ -40,7 +40,10 @@ def _roi_s(item: Arbitrage | ValueBet) -> str:
 
 def format_valuebet_caption_line(vb: ValueBet) -> str:
     odd = f"{vb.odds:.2f}" if vb.odds is not None else "n/a"
-    return f"{vb.event or 'n/a'}\n{vb.market_raw or 'n/a'} @ {odd} · {_roi_s(vb)}"
+    event = vb.event or "n/a"
+    if vb.bookmaker:
+        event = f"{event} ({vb.bookmaker})"
+    return f"{event}\n{vb.market_raw or 'n/a'} @ {odd} · {_roi_s(vb)}"
 
 
 def format_arbitrage_caption_line(arb: Arbitrage) -> str:
@@ -95,38 +98,6 @@ def format_filter_caption(
 
 def format_error_alert(reason: str) -> str:
     return f"SureBet Monitor\nErro: {reason}"
-
-
-def format_run_summary(
-    *,
-    filters_ok: int,
-    filters_failed: int,
-    raw: int,
-    sent: int,
-    new: int,
-    duration_s: float,
-    open_bets: int = 0,
-    per_filter: list[FilterRunStats] | None = None,
-    alert_cap_hit: bool = False,
-) -> str:
-    lines = [
-        "📊 Monitor summary",
-        f"✅ Filters: {filters_ok} ok / {filters_failed} fail",
-        f"📥 Raw: {raw} | 🆕 New: {new} | 📤 Sent: {sent}",
-        f"🎰 Open bets tracked: {open_bets}",
-        f"⏱️ {duration_s:.0f}s",
-    ]
-    if alert_cap_hit:
-        lines.append("⚠️ Alert cap hit — later filters may have scraped without sending")
-    if per_filter:
-        lines.append("")
-        for fr in per_filter:
-            status = "ok" if fr.ok else "FAIL"
-            err = f" ({fr.error})" if fr.error else ""
-            lines.append(
-                f"· {fr.filter_name}: {status} raw={fr.raw} new={fr.new} sent={fr.sent}{err}"
-            )
-    return "\n".join(lines)
 
 
 def format_bet_registered(action: str) -> str:

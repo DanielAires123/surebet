@@ -59,12 +59,13 @@ def test_format_valuebet_caption_line():
         filter_id="f1",
         filter_name="0.5UN",
         event="eSuba – White Dragons",
+        bookmaker="22Bet",
         market_raw="Total acima 31.5 1º mapa - abates",
         odds=Decimal("1.85"),
         site_overvalue=Decimal("0.2173"),
     )
     line = format_valuebet_caption_line(vb)
-    assert line == "eSuba – White Dragons\nTotal acima 31.5 1º mapa - abates @ 1.85 · +21.73%"
+    assert line == "eSuba – White Dragons (22Bet)\nTotal acima 31.5 1º mapa - abates @ 1.85 · +21.73%"
 
 
 def test_format_arbitrage_caption_line():
@@ -106,6 +107,28 @@ def test_format_filter_caption_valuebets():
     assert text.startswith("Tugas — 2 novas")
     assert "Joaquim – Miguel" in text
     assert "Over 2.5 @ 2.50 · +12.00%" in text
+    assert len(text) <= TELEGRAM_CAPTION_MAX
+
+
+def test_format_filter_caption_top_three_only():
+    """Caller passes pre-sorted top-N; caption lists those only."""
+    items = [
+        ValueBet(
+            filter_id="f",
+            filter_name="MAX",
+            event=f"Team{i} – Opponent{i}",
+            market_raw="Over 2.5",
+            odds=Decimal("1.85"),
+            site_overvalue=Decimal(str(0.30 - i * 0.01)),
+        )
+        for i in range(10)
+    ]
+    top = items[:3]
+    text = format_filter_caption("MAX", top)
+    assert text.startswith("MAX — 3 novas")
+    assert "Team0" in text and "Team1" in text and "Team2" in text
+    assert "Team3" not in text
+    assert "… +" not in text
     assert len(text) <= TELEGRAM_CAPTION_MAX
 
 

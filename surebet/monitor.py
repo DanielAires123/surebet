@@ -44,7 +44,7 @@ from surebet.state import StateStore
 from surebet.valuebets import extract_valuebets
 from telegram.bot import TelegramBot
 from telegram.callbacks import poll_callbacks
-from telegram.formatting import format_error_alert, format_filter_caption, format_run_summary
+from telegram.formatting import format_error_alert, format_filter_caption
 
 log = logging.getLogger(__name__)
 
@@ -195,16 +195,17 @@ def process_filter(
 
         pending.append((item, reason))
 
-    # Highest ROI first — caption truncates the weak ones
+    # Highest ROI first — Telegram only lists top 3
     pending.sort(key=lambda pair: _item_roi(pair[0]), reverse=True)
     items = [it for it, _ in pending]
+    top = items[:3]
 
     if pending and _want_overview_shot(filt.screenshot_mode, [r for _, r in pending]):
-        caption = format_filter_caption(filt.name, items)
+        caption = format_filter_caption(filt.name, top)
         shot_path = settings.screenshots_dir / f"overview_{filt.id}.png"
         sent_ok = False
         if dry_run:
-            log.info("[dry-run] would send photo for %s (%s novas)\n%s", filt.name, len(items), caption)
+            log.info("[dry-run] would send photo for %s (%s novas)\n%s", filt.name, len(top), caption)
             sent_ok = True
             stats.screenshots += 1
         else:
@@ -223,6 +224,7 @@ def process_filter(
             except OSError:
                 pass
 
+        # mark all pending sent so lower-ROI novas don't re-alert every run
         if sent_ok:
             for item in items:
                 stats.sent += 1
@@ -330,7 +332,6 @@ def run_monitor(
                     run.duration_seconds = time.time() - started
                     _log_summary(run)
                     if not dry_run:
-                        _send_summary(bot, state, settings, run, alert_cap_hit=not bot._allowed())
                         state.save()
                     return 2
                 except Exception as e:
@@ -369,9 +370,8 @@ def run_monitor(
     run.duration_seconds = time.time() - started
     _log_summary(run)
 
-    # Summary + drain any pending Apostei/Não clicks
+    # Drain any pending Apostei/Não clicks
     if not dry_run:
-        _send_summary(bot, state, settings, run, alert_cap_hit=not bot._allowed())
         state.save()
         try:
             poll_callbacks(
@@ -386,32 +386,6 @@ def run_monitor(
     if filters and run.failed == len(filters):
         return 1
     return 0
-
-
-def _send_summary(
-    bot: TelegramBot,
-    state: StateStore,
-    settings: Settings,
-    run: RunStats,
-    *,
-    alert_cap_hit: bool,
-) -> None:
-    summary = format_run_summary(
-        filters_ok=run.successful,
-        filters_failed=run.failed,
-        raw=run.raw,
-        sent=run.sent,
-        new=run.new,
-        duration_s=run.duration_seconds,
-        open_bets=state.open_bets_count(),
-        per_filter=run.per_filter,
-        alert_cap_hit=alert_cap_hit,
-    )
-    bot.send_message(
-        summary,
-        message_thread_id=settings.telegram_arbitrage_thread_id,
-        count_toward_cap=False,
-    )
 
 
 def _alert_error(bot: TelegramBot, state: StateStore, settings: Settings, reason: str) -> None:
