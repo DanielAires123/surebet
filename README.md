@@ -20,7 +20,7 @@ Filtros default:
 | Filtro | Tipo | Threshold |
 |---|---|---|
 | Surebets | surebet | lucro ≥ 1% |
-| 0.5UN / 0.7UN / 1UN / MAX | valuebet | overvalue ≥ 5% |
+| 0.5UN / 0.7UN / 1UN / MAX / Tugas | valuebet | overvalue ≥ 5% |
 
 ## Setup rápido
 

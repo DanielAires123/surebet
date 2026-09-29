@@ -69,6 +69,18 @@
       "min_overvalue": 0.05,
       "sports": [],
       "bookmakers": []
+    },
+    {
+      "id": "valuebet_tugas",
+      "name": "Tugas",
+      "surebet_filter_id": "34291337",
+      "source": "valuebet",
+      "enabled": true,
+      "send_results": true,
+      "screenshot_mode": "on_new",
+      "min_overvalue": 0.05,
+      "sports": [],
+      "bookmakers": []
     }
   ]
 }

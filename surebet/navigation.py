@@ -37,16 +37,17 @@ def open_product(page: Page, settings: Settings, source: Source) -> None:
 
 
 def select_filter(page: Page, surebet_filter_id: str, expected_name: str) -> None:
-    sel = page.locator(S.FILTER_SELECT)
-    if sel.count() == 0:
-        raise FilterNotFound("Filter select #filter_current_id not found")
-
-    # Wait for saved presets to appear (logged-in).
+    # Site can render multiple #filter_current_id; drive the first visible select.
+    sel = page.locator(S.FILTER_SELECT).first
     try:
-        page.wait_for_selector(
-            f'{S.FILTER_SELECT} option[value="{surebet_filter_id}"]',
-            timeout=20_000,
-        )
+        sel.wait_for(state="attached", timeout=20_000)
+    except PlaywrightTimeout:
+        raise FilterNotFound("Filter select #filter_current_id not found") from None
+
+    # <option> nodes are "hidden" in Playwright — wait attached, never visible.
+    option = sel.locator(f'option[value="{surebet_filter_id}"]')
+    try:
+        option.first.wait_for(state="attached", timeout=20_000)
     except PlaywrightTimeout:
         available = []
         for opt in sel.locator("option").all():
@@ -54,9 +55,8 @@ def select_filter(page: Page, surebet_filter_id: str, expected_name: str) -> Non
         raise FilterNotFound(
             f"Filter id={surebet_filter_id} name={expected_name} not in select. "
             f"Available: {available[:20]}"
-        )
+        ) from None
 
-    option = sel.locator(f'option[value="{surebet_filter_id}"]')
     value = option.first.get_attribute("value")
     if not value or value in {"separator", "-2"}:
         raise FilterNotFound(f"Invalid filter option value for {expected_name}")
@@ -78,7 +78,7 @@ def select_filter(page: Page, surebet_filter_id: str, expected_name: str) -> Non
     if selected != value:
         raise FilterNotFound(f"Filter did not stick: want {value}, got {selected}")
 
-    selected_label = sel.locator("option:checked").inner_text().strip()
+    selected_label = sel.locator("option:checked").first.inner_text().strip()
     if expected_name and expected_name not in selected_label and selected_label not in expected_name:
         log.warning("Selected label %r vs expected %r (id matched)", selected_label, expected_name)
     log.info("Filter selected: %s (%s)", selected_label, value)
