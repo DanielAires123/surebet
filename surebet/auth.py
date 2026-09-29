@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeout
 
@@ -39,7 +40,6 @@ def detect_protections(page: Page) -> None:
             continue
 
     text = _page_text(page).casefold()
-    # Title-only Cloudflare interstitial
     try:
         title = (page.title() or "").casefold()
     except Exception:
@@ -59,6 +59,57 @@ def is_authenticated(page: Page) -> bool:
     return False
 
 
+def _wait_for_grecaptcha(page: Page, timeout_s: float = 25.0) -> None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        ready = page.evaluate(
+            """() => !!(window.grecaptcha && typeof window.grecaptcha.execute === 'function')"""
+        )
+        if ready:
+            return
+        page.wait_for_timeout(250)
+    raise AuthFailed(
+        "reCAPTCHA JS (grecaptcha) did not load — login cannot proceed from this environment"
+    )
+
+
+def _ensure_recaptcha_token(page: Page, timeout_s: float = 20.0) -> None:
+    """Let the site's own JS fill #recaptcha-token (triggered on password change)."""
+    token_el = page.locator(S.LOGIN_RECAPTCHA_TOKEN)
+    if token_el.count() == 0:
+        raise AuthFailed("reCAPTCHA token field missing on login form")
+
+    existing = token_el.input_value()
+    if existing:
+        return
+
+    # Site JS: on password change → grecaptcha.execute(sitekey, {action:'sign_in'})
+    page.evaluate(
+        """() => {
+          const key = document.querySelector('#recaptcha-key')?.value;
+          const token = document.querySelector('#recaptcha-token');
+          if (!window.grecaptcha || !key || !token) return false;
+          return window.grecaptcha.execute(key, {action: 'sign_in'}).then((t) => {
+            token.value = t;
+            return true;
+          });
+        }"""
+    )
+
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        val = token_el.input_value()
+        if val:
+            log.info("reCAPTCHA token acquired (len=%s)", len(val))
+            return
+        page.wait_for_timeout(250)
+
+    raise CaptchaDetected(
+        "reCAPTCHA token empty after execute — Google likely blocked this IP/environment. "
+        "Do not bypass; run locally or use a saved browser storage_state from a manual login."
+    )
+
+
 def login(page: Page, settings: Settings) -> None:
     base = settings.base_url
     try:
@@ -74,42 +125,80 @@ def login(page: Page, settings: Settings) -> None:
         log.info("Already authenticated")
         return
 
-    # Go to explicit sign-in if needed
-    if page.locator(S.LOGIN_PASSWORD).count() == 0:
-        page.goto(f"{base}{S.LOGIN_PATH}", wait_until="domcontentloaded", timeout=45_000)
-        detect_protections(page)
+    page.goto(f"{base}{S.LOGIN_PATH}", wait_until="domcontentloaded", timeout=45_000)
+    detect_protections(page)
 
-    email = page.locator(S.LOGIN_EMAIL).first
-    password = page.locator(S.LOGIN_PASSWORD).first
-    if email.count() == 0 or password.count() == 0:
-        raise AuthFailed("Login form fields not found")
+    try:
+        page.wait_for_selector(S.LOGIN_FORM, timeout=20_000)
+        page.wait_for_selector(S.LOGIN_EMAIL, timeout=20_000)
+    except PlaywrightTimeout as e:
+        raise AuthFailed("Login form not found") from e
+
+    # Ensure JS flag (site sets this too)
+    js_flag = page.locator(S.LOGIN_USER_JS)
+    if js_flag.count() > 0:
+        page.evaluate(
+            """() => {
+              const el = document.querySelector('#user_js');
+              if (el) el.value = 'enabled';
+            }"""
+        )
+
+    _wait_for_grecaptcha(page)
+
+    email = page.locator(S.LOGIN_EMAIL)
+    password = page.locator(S.LOGIN_PASSWORD)
+    if password.count() == 0:
+        # some flows reveal password after email check
+        email.fill(settings.surebet_username)
+        email.blur()
+        page.wait_for_timeout(1500)
+        try:
+            page.wait_for_selector(S.LOGIN_PASSWORD, timeout=15_000)
+        except PlaywrightTimeout as e:
+            raise AuthFailed("Password field never appeared after email") from e
+        password = page.locator(S.LOGIN_PASSWORD)
 
     email.fill(settings.surebet_username)
+    password.click()
     password.fill(settings.surebet_password)
-    submit = page.locator(S.LOGIN_SUBMIT).first
+    # trigger site's change handler that requests recaptcha token
+    password.dispatch_event("change")
+    page.wait_for_timeout(300)
+
+    _ensure_recaptcha_token(page)
+
+    submit = page.locator(S.LOGIN_SUBMIT)
+    if submit.count() == 0:
+        raise AuthFailed("Login submit button not found")
     submit.click()
 
     try:
         page.wait_for_load_state("domcontentloaded", timeout=30_000)
-        # wait for session cookie / redirect to settle
-        page.wait_for_timeout(1500)
     except PlaywrightTimeout as e:
         raise TimeoutError_("Timeout after login submit") from e
 
     detect_protections(page)
 
-    page.goto(f"{base}{S.VALUEBETS_PATH}", wait_until="domcontentloaded", timeout=45_000)
-    detect_protections(page)
-
+    # Confirm auth (Sair). If still on sign_in, credentials/recaptcha rejected.
     try:
-        page.wait_for_selector(S.AUTH_SIGNOUT, timeout=20_000)
+        page.wait_for_selector(S.AUTH_SIGNOUT, timeout=25_000)
     except PlaywrightTimeout:
-        pass
+        page.goto(f"{base}{S.VALUEBETS_PATH}", wait_until="domcontentloaded", timeout=45_000)
+        detect_protections(page)
+        try:
+            page.wait_for_selector(S.AUTH_SIGNOUT, timeout=15_000)
+        except PlaywrightTimeout:
+            pass
 
     if not is_authenticated(page):
         body = _page_text(page)
-        if re.search(r"inv[aá]lid|incorret|wrong password|authentication", body, re.I):
-            raise AuthFailed("Invalid credentials")
+        if re.search(r"inv[aá]lid|incorret|wrong password|authentication|senha", body, re.I):
+            raise AuthFailed("Invalid credentials (or login rejected)")
+        if page.locator(S.LOGIN_FORM).count() > 0 or S.LOGIN_PAGE_TEXT in body:
+            raise AuthFailed(
+                "Still on login page after submit — credentials wrong or reCAPTCHA rejected"
+            )
         raise AuthFailed("Authentication not confirmed after login (no sign-out link)")
 
     log.info("Login successful")

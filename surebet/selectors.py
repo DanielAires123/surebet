@@ -6,11 +6,15 @@ Do not invent CSS/XPath outside this module.
 """
 
 # --- Auth / session ---
-# Login form: Devise-style Rails. Confirm on /users/sign_in if site changes.
+# Login form: Devise + reCAPTCHA v3 (token filled by site JS on password change).
 LOGIN_PATH = "/users/sign_in"
-LOGIN_EMAIL = 'input[name="user[email]"], input[type="email"], #user_email'
-LOGIN_PASSWORD = 'input[name="user[password]"], input[type="password"], #user_password'
-LOGIN_SUBMIT = 'input[type="submit"], button[type="submit"]'
+LOGIN_FORM = "#sign-in-form"
+LOGIN_EMAIL = "#user_email"
+LOGIN_PASSWORD = "#user_password"
+LOGIN_SUBMIT = "#sign-in-form-submit-button"
+LOGIN_USER_JS = "#user_js"
+LOGIN_RECAPTCHA_TOKEN = "#recaptcha-token"
+LOGIN_RECAPTCHA_KEY = "#recaptcha-key"
 AUTH_SIGNOUT = 'a[href="/users/sign_out"]'
 AUTH_FILTER_SELECT = "#filter_current_id"
 LOGIN_PAGE_TEXT = "Fazer login"
