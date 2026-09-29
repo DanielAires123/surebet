@@ -62,6 +62,21 @@ jobs:
         env:
           PYTHONPATH: .
 
+      - name: Restore storage_state from secret
+        env:
+          SUREBET_STORAGE_STATE_B64: ${{ secrets.SUREBET_STORAGE_STATE_B64 }}
+        run: |
+          if [ -z "$SUREBET_STORAGE_STATE_B64" ]; then
+            echo "No SUREBET_STORAGE_STATE_B64 secret — will try password login (may fail on reCAPTCHA)"
+            exit 0
+          fi
+          python - <<'PY'
+          import base64, os
+          raw = base64.b64decode(os.environ["SUREBET_STORAGE_STATE_B64"])
+          open("storage_state.json", "wb").write(raw)
+          print(f"Wrote storage_state.json ({len(raw)} bytes)")
+          PY
+
       - name: Run monitor
         env:
           PYTHONPATH: .
@@ -76,6 +91,9 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           if [ "${{ github.event.inputs.debug }}" = "true" ]; then ARGS="$ARGS --debug"; fi
           if [ -n "${{ github.event.inputs.filter_id }}" ]; then ARGS="$ARGS --filter ${{ github.event.inputs.filter_id }}"; fi
+          if [ -f storage_state.json ]; then
+            export SUREBET_STORAGE_STATE_PATH=storage_state.json
+          fi
           python main.py $ARGS
 
       - name: Publish bot-state

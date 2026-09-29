@@ -37,33 +37,51 @@ Filtros default:
 4. Abre `https://api.telegram.org/bot<TOKEN>/getUpdates` e copia o **chat.id** → **TELEGRAM_CHAT_ID**  
    (ou usa um canal/grupo onde o bot seja admin)
 
-### 3. Secrets no GitHub
+### 3. Sessão (storage_state) — obrigatório no Actions
+
+O login com password **falha no GitHub Actions** (`grecaptcha` não carrega).  
+Exporta a sessão localmente (CAPTCHA manual OK) e mete o JSON em secret:
+
+```bash
+# local, com Chromium headed
+python main.py --export-storage
+```
+
+1. Faz login no browser que abrir  
+2. Quando vires **Sair**, o script grava `storage_state.json` e imprime um **base64**  
+3. GitHub → **Settings → Secrets → Actions** → secret `SUREBET_STORAGE_STATE_B64` = esse base64 (uma linha)
+
+Renova o secret quando a sessão expirar (Telegram: `AUTH_FAILED` / storage expired).
+
+### 4. Secrets no GitHub
 
 **Settings → Secrets and variables → Actions → New repository secret**
 
 | Secret | Valor |
 |---|---|
-| `SUREBET_USERNAME` | email SureBet |
+| `SUREBET_STORAGE_STATE_B64` | base64 de `python main.py --export-storage` |
+| `SUREBET_USERNAME` | email SureBet (fallback local / se sessão expirar) |
 | `SUREBET_PASSWORD` | password SureBet |
 | `TELEGRAM_BOT_TOKEN` | token BotFather |
 | `TELEGRAM_CHAT_ID` | id do chat |
+| `TELEGRAM_MESSAGE_THREAD_ID` | (opcional) id do tópico forum |
 
-Nunca commits estes valores.
+Nunca commits estes valores nem `storage_state.json`.
 
-### 4. Configurar filtros
+### 5. Configurar filtros
 
 Edita `filters.json`. Cada filtro precisa de `surebet_filter_id` (o `value` do `<option>` no dropdown "Filtro" no site).
 
 Para descobrir o ID: DevTools → `#filter_current_id` → `<option value="...">Nome</option>`.
 
-### 5. Correr no Actions
+### 6. Correr no Actions
 
 1. **Actions → surebet-monitor → Run workflow**  
 2. Primeiro teste: `dry_run=true`  
 3. Ou com input vazio para run normal  
 4. Para testar Telegram só: workflow local `python main.py --test-telegram` (com secrets no `.env`)
 
-### 6. Local (opcional)
+### 7. Local (opcional)
 
 ```bash
 python -m venv .venv
@@ -79,7 +97,7 @@ python main.py --dry-run --filter valuebet_05un
 python main.py --dry-run --headed --debug
 ```
 
-### 7. Ativar schedule
+### 8. Ativar schedule
 
 O cron `7,22,37,52 * * * *` já está no workflow (~15 em 15 min).  
 Confirma que Actions estão enabled no repo.
@@ -93,6 +111,7 @@ python main.py --debug
 python main.py --filter valuebet_05un
 python main.py --test-telegram
 python main.py --headed
+python main.py --export-storage   # login manual → storage_state.json + B64
 ```
 
 ## Branch bot-state
@@ -109,7 +128,7 @@ Runners são efémeros. O workflow grava só `state.json` (hashes / last odds / 
 
 | Sintoma | Causa / ação |
 |---|---|
-| **LOGIN FAILED** | Credenciais erradas ou formulário mudou (`surebet/auth.py` / `selectors.py`) |
+| **LOGIN FAILED** / **AUTH_FAILED** + grecaptcha | No Actions: usa `SUREBET_STORAGE_STATE_B64`. Local: `--export-storage` e renova o secret |
 | **CAPTCHA DETECTED** | Site pediu CAPTCHA — o monitor **para**. Não há bypass. Espera / login manual / reduz frequência |
 | **ANTI_BOT_DETECTED** | Mesmo: para sem contornar |
 | **SELECTOR NOT FOUND** | Layout mudou — atualiza `surebet/selectors.py` com DevTools |

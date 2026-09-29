@@ -48,8 +48,17 @@ def load_settings(*, require_credentials: bool = True) -> Settings:
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat = os.getenv("TELEGRAM_CHAT_ID", "")
     thread = os.getenv("TELEGRAM_MESSAGE_THREAD_ID", "").strip() or None
-    if require_credentials and (not user or not password):
-        raise RuntimeError("SUREBET_USERNAME / SUREBET_PASSWORD missing")
+    has_storage = bool(
+        os.getenv("SUREBET_STORAGE_STATE_B64", "").strip()
+        or os.getenv("SUREBET_STORAGE_STATE_PATH", "").strip()
+        or os.getenv("SUREBET_STORAGE_STATE", "").strip()
+        or (ROOT / "storage_state.json").is_file()
+    )
+    if require_credentials and (not user or not password) and not has_storage:
+        raise RuntimeError(
+            "Need SUREBET_USERNAME/PASSWORD or a storage_state "
+            "(SUREBET_STORAGE_STATE_B64 / storage_state.json)"
+        )
     return Settings(
         surebet_username=user,
         surebet_password=password,

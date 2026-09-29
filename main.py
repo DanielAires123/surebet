@@ -9,6 +9,7 @@ import sys
 
 from surebet.config import load_settings
 from surebet.monitor import run_monitor
+from surebet.session import DEFAULT_STORAGE_PATH, export_storage_interactive
 from telegram.bot import TelegramBot
 
 
@@ -19,6 +20,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--filter", dest="filter_id", default=None, help="Process only this filter id")
     p.add_argument("--test-telegram", action="store_true", help="Send Telegram test message and exit")
     p.add_argument("--headed", action="store_true", help="Run Chromium headed (local debug)")
+    p.add_argument(
+        "--export-storage",
+        action="store_true",
+        help="Headed login (manual CAPTCHA OK) then save storage_state.json + print base64 for GitHub",
+    )
     return p
 
 
@@ -38,6 +44,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         ok = bot.test_connection()
         return 0 if ok else 1
+
+    if args.export_storage:
+        # credentials optional — user logs in manually in the browser
+        settings = load_settings(require_credentials=False)
+        export_storage_interactive(settings, DEFAULT_STORAGE_PATH)
+        return 0
 
     settings = load_settings(require_credentials=True)
     return run_monitor(

@@ -250,7 +250,26 @@ def run_monitor(
             page = session.page
             if debug:
                 session.screenshot("before_login.png")
-            login(page, settings)
+
+            if session.storage_state_path:
+                log.info("Using storage_state: %s", session.storage_state_path)
+                page.goto(f"{settings.base_url}/valuebets", wait_until="domcontentloaded", timeout=45_000)
+                detect_protections(page)
+                from surebet.auth import is_authenticated
+
+                if is_authenticated(page):
+                    log.info("Session restored (skip login)")
+                elif settings.surebet_username and settings.surebet_password:
+                    log.warning("storage_state expired — falling back to login")
+                    login(page, settings)
+                else:
+                    raise AuthFailed(
+                        "storage_state present but session expired; re-export with "
+                        "`python main.py --export-storage` and update the GitHub secret"
+                    )
+            else:
+                login(page, settings)
+
             if debug:
                 session.screenshot("after_login.png")
             log.info("Login successful")
