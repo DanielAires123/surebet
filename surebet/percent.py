@@ -20,23 +20,12 @@ def _to_decimal(value: NumberLike) -> Decimal:
 
 def parse_percent(value: NumberLike) -> Decimal:
     """
-    Parse a percent-ish value into a fraction.
+    Parse percent points into a fraction.
 
-    - "41%" / "41" / 41 / "41,0" when clearly a percent-points amount → 0.41
-    - Values already in (0, 1] stay as-is (0.41 → 0.41)
-    - Values > 1 are treated as percent points (12.1 → 0.121)
+    surebet DOM attrs (data-profit, data-overvalue, data-probability) are always
+    percent points — including sub-1 values: "0.89" → 0.0089 (0.89%), not 89%.
     """
-    if isinstance(value, str) and "%" in value:
-        return _to_decimal(value) / Decimal(100)
-
-    d = _to_decimal(value)
-    if d == 0:
-        return Decimal("0")
-    # already a fraction
-    if Decimal("0") < abs(d) <= Decimal("1"):
-        return d
-    # percent points (e.g. 12.1, 67.13, 10.3)
-    return d / Decimal(100)
+    return _to_decimal(value) / Decimal(100)
 
 
 def format_percent(value: Decimal, places: int = 2, signed: bool = False) -> str:

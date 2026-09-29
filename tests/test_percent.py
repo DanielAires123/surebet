@@ -7,13 +7,17 @@ def test_parse_percent_from_string_with_sign():
     assert parse_percent("41%") == Decimal("0.41")
 
 
-def test_parse_percent_fraction_unchanged():
-    assert parse_percent(Decimal("0.41")) == Decimal("0.41")
+def test_parse_percent_sub_one_is_still_percent_points():
+    # surebet data-profit="0.89" means 0.89%, not 89%
+    assert parse_percent("0.89") == Decimal("0.0089")
+    assert parse_percent(Decimal("0.84")) == Decimal("0.0084")
+    assert parse_percent(0.89) == Decimal("0.0089")
 
 
 def test_parse_percent_points():
     assert parse_percent("10.3") == Decimal("0.103")
     assert parse_percent(12.1) == Decimal("0.121")
+    assert parse_percent(Decimal("13.59")) == Decimal("0.1359")
 
 
 def test_format_percent():
