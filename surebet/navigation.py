@@ -23,7 +23,6 @@ def product_path(source: Source) -> str:
 
 
 def product_name(source: Source) -> str:
-    # Network: /filters/{id}/choose?product=valuebets|surebets
     return "valuebets" if source == "valuebet" else "surebets"
 
 
@@ -35,15 +34,6 @@ def product_record(source: Source) -> str:
     return S.VALUEBET_RECORD if source == "valuebet" else S.SUREBET_RECORD
 
 
-def choose_filter_url(settings: Settings, source: Source, surebet_filter_id: str) -> str:
-    product = product_name(source)
-    ret = product_path(source)
-    return (
-        f"{settings.base_url}/filters/{surebet_filter_id}/choose"
-        f"?product={product}&return_to={ret}"
-    )
-
-
 def open_product(page: Page, settings: Settings, source: Source) -> None:
     url = f"{settings.base_url}{product_path(source)}"
     page.goto(url, wait_until="domcontentloaded", timeout=45_000)
@@ -51,26 +41,11 @@ def open_product(page: Page, settings: Settings, source: Source) -> None:
 
 
 def _filter_select(page: Page):
+    # Single control: #filter_current_id + data-testid=filter-saved-select
     testid = page.locator(S.FILTER_SELECT_TESTID)
     if testid.count() > 0:
         return testid.first
-    loc = page.locator(S.FILTER_SELECT)
-    for i in range(loc.count()):
-        cand = loc.nth(i)
-        try:
-            if cand.is_visible():
-                return cand
-        except Exception:
-            continue
-    return loc.first
-
-
-def _read_selected_filter_id(page: Page) -> str | None:
-    try:
-        sel = _filter_select(page)
-        return sel.input_value()
-    except Exception:
-        return None
+    return page.locator(S.FILTER_SELECT).first
 
 
 def select_filter(
@@ -82,66 +57,19 @@ def select_filter(
     source: Source,
 ) -> None:
     """
-    Apply saved preset the same way the UI does:
-    GET /filters/{id}/choose?product=...&return_to=...
-    (session-bound; cold unauthenticated goto can 404).
+    Real site behaviour (verified via network on authenticated session):
+
+    Changing #filter_current_id fires a 'change' listener in assets/filter-*.js which
+    POSTs /filters/{id}/choose?product=...&return_to=... (GET of that URL is 404),
+    then the page navigates back to /valuebets|/surebets with the preset applied.
+
+    So we must: open product → select_option (native change) → wait for POST+reload.
     """
     if not surebet_filter_id or surebet_filter_id in {"separator", "-2"}:
         raise FilterNotFound(f"Invalid filter option value for {expected_name}")
 
-    current = _read_selected_filter_id(page)
-    if current == surebet_filter_id:
-        log.info("Filter already selected: %s (%s)", expected_name, surebet_filter_id)
-        return
+    open_product(page, settings, source)
 
-    url = choose_filter_url(settings, source, surebet_filter_id)
-    log.info("Choosing filter via %s", url)
-    resp = page.goto(url, wait_until="domcontentloaded", timeout=45_000)
-    status = resp.status if resp else None
-    if status and status >= 400:
-        # Fallback: land on product page and try native select (last resort).
-        log.warning("choose URL returned %s — falling back to <select>", status)
-        open_product(page, settings, source)
-        _select_via_dom(page, surebet_filter_id, expected_name)
-        return
-
-    try:
-        page.wait_for_selector(product_table(source), timeout=30_000)
-    except PlaywrightTimeout as e:
-        raise FilterNotFound(
-            f"After choose, product table missing for {expected_name} (HTTP {status})"
-        ) from e
-
-    # Wait for select to reflect the chosen preset (redirect may remount DOM).
-    deadline = time.time() + 15
-    selected = None
-    while time.time() < deadline:
-        selected = _read_selected_filter_id(page)
-        if selected == surebet_filter_id:
-            break
-        page.wait_for_timeout(250)
-
-    if selected != surebet_filter_id:
-        # choose may have applied server-side even if select lags — try DOM once.
-        log.warning(
-            "choose done but select shows %r (want %s) — DOM fallback",
-            selected,
-            surebet_filter_id,
-        )
-        _select_via_dom(page, surebet_filter_id, expected_name)
-        return
-
-    label = ""
-    try:
-        label = _filter_select(page).locator("option:checked").first.inner_text().strip()
-    except Exception:
-        label = expected_name
-    if expected_name and label and expected_name not in label and label not in expected_name:
-        log.warning("Selected label %r vs expected %r (id matched)", label, expected_name)
-    log.info("Filter selected: %s (%s)", label or expected_name, surebet_filter_id)
-
-
-def _select_via_dom(page: Page, surebet_filter_id: str, expected_name: str) -> None:
     try:
         page.wait_for_selector(S.FILTER_SELECT, state="attached", timeout=20_000)
     except PlaywrightTimeout:
@@ -149,40 +77,85 @@ def _select_via_dom(page: Page, surebet_filter_id: str, expected_name: str) -> N
 
     sel = _filter_select(page)
     option = sel.locator(f'option[value="{surebet_filter_id}"]')
-    if option.count() == 0:
-        available = []
-        for opt in sel.locator("option").all():
-            available.append(f"{opt.get_attribute('value')}={opt.inner_text().strip()}")
+    try:
+        # <option> is never "visible" in Playwright — attached only.
+        option.first.wait_for(state="attached", timeout=20_000)
+    except PlaywrightTimeout:
+        available = [
+            f"{opt.get_attribute('value')}={opt.inner_text().strip()}"
+            for opt in sel.locator("option").all()
+        ]
         raise FilterNotFound(
             f"Filter id={surebet_filter_id} name={expected_name} not in select. "
             f"Available: {available[:20]}"
-        )
+        ) from None
 
-    # Use data-product / data-return-to like the site's own change handler.
-    sel.evaluate(
-        """(el, v) => {
-            el.value = v;
-            const product = el.getAttribute('data-product') || 'valuebets';
-            const ret = el.getAttribute('data-return-to') || ('/' + product);
-            const url = '/filters/' + encodeURIComponent(v)
-                + '/choose?product=' + encodeURIComponent(product)
-                + '&return_to=' + encodeURIComponent(ret);
-            window.location.assign(url);
-        }""",
+    current = sel.input_value()
+    if current == surebet_filter_id:
+        log.info("Filter already selected: %s (%s)", expected_name, surebet_filter_id)
+        return
+
+    product = product_name(source)
+    choose_substr = f"/filters/{surebet_filter_id}/choose"
+
+    log.info(
+        "Selecting filter %s (%s) via <select> → POST %s?product=%s",
+        expected_name,
         surebet_filter_id,
+        choose_substr,
+        product,
     )
-    try:
-        page.wait_for_load_state("domcontentloaded", timeout=30_000)
-    except PlaywrightTimeout:
-        pass
-    page.wait_for_timeout(500)
 
-    selected = _read_selected_filter_id(page)
+    try:
+        with page.expect_response(
+            lambda r: (
+                choose_substr in r.url
+                and r.request.method == "POST"
+                and r.status < 400
+            ),
+            timeout=30_000,
+        ):
+            sel.select_option(value=surebet_filter_id)
+    except PlaywrightTimeout as e:
+        raise FilterNotFound(
+            f"No successful POST to {choose_substr} after selecting {expected_name}"
+        ) from e
+
+    # Site reloads the product page after choose.
+    try:
+        page.wait_for_url(f"**{product_path(source)}**", timeout=30_000)
+    except PlaywrightTimeout:
+        # still ok if already on product path / query variants
+        pass
+    try:
+        page.wait_for_selector(product_table(source), timeout=30_000)
+        page.wait_for_selector(S.FILTER_SELECT, state="attached", timeout=20_000)
+    except PlaywrightTimeout as e:
+        raise FilterNotFound(
+            f"Product page did not reload after choosing {expected_name}"
+        ) from e
+
+    sel = _filter_select(page)
+    deadline = time.time() + 15
+    selected = None
+    while time.time() < deadline:
+        try:
+            selected = sel.input_value()
+            if selected == surebet_filter_id:
+                break
+        except Exception:
+            sel = _filter_select(page)
+        page.wait_for_timeout(200)
+
     if selected != surebet_filter_id:
         raise FilterNotFound(
             f"Filter did not stick: want {surebet_filter_id}, got {selected}"
         )
-    log.info("Filter selected via DOM navigate: %s (%s)", expected_name, surebet_filter_id)
+
+    label = sel.locator("option:checked").first.inner_text().strip()
+    if expected_name and expected_name not in label and label not in expected_name:
+        log.warning("Selected label %r vs expected %r (id matched)", label, expected_name)
+    log.info("Filter selected: %s (%s)", label, surebet_filter_id)
 
 
 def wait_for_results(page: Page, source: Source, timeout_s: float = 45.0) -> ResultsState:
