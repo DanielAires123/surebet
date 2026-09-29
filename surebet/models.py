@@ -59,9 +59,6 @@ class ArbOutcome(BaseModel):
     event: Optional[str] = None
     tournament: Optional[str] = None
     market_parts: Optional[MarketParts] = None
-    bookmaker_url: Optional[str] = None
-    event_url: Optional[str] = None
-    odds_url: Optional[str] = None
 
 
 class StakeLeg(BaseModel):
@@ -107,10 +104,6 @@ class ValueBet(BaseModel):
     fair_probability: Optional[Decimal] = None
     site_overvalue: Optional[Decimal] = None
     calculated_ev: Optional[Decimal] = None
-
-    bookmaker_url: Optional[str] = None
-    event_url: Optional[str] = None
-    odds_url: Optional[str] = None
 
     identity_hash: Optional[str] = None
     content_hash: Optional[str] = None  # cross-filter dedupe (no filter_id)

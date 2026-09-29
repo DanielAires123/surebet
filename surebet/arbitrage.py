@@ -13,7 +13,6 @@ from playwright.sync_api import Page
 from surebet import selectors as S
 from surebet.config import Settings
 from surebet.deduplication import arbitrage_content_hash, arbitrage_identity_hash
-from surebet.dom_links import first_href
 from surebet.models import ArbOutcome, Arbitrage, FilterConfig, ParseStats
 from surebet.normalization import normalize_bookmaker, normalize_event, parse_market
 from surebet.percent import parse_percent
@@ -88,10 +87,6 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
                 if odds is None:
                     raise ValueError("missing odds")
 
-                bookmaker_url = first_href(leg.locator(S.LEG_BOOKMAKER), settings.base_url)
-                event_url = first_href(leg.locator(S.LEG_EVENT), settings.base_url)
-                odds_url = first_href(leg.locator(S.LEG_ODDS), settings.base_url)
-
                 parts = parse_market(market_raw or "")
                 _, book_display = normalize_bookmaker(bookmaker or "")
                 outcomes.append(
@@ -104,9 +99,6 @@ def extract_arbitrages(page: Page, filt: FilterConfig, settings: Settings, *, to
                         event=normalize_event(matchup or event or "") or None,
                         tournament=clean_competition(tournament),
                         market_parts=parts,
-                        bookmaker_url=bookmaker_url,
-                        event_url=event_url,
-                        odds_url=odds_url,
                     )
                 )
                 if matchup or event:

@@ -13,7 +13,6 @@ from playwright.sync_api import Page
 from surebet import selectors as S
 from surebet.config import Settings
 from surebet.deduplication import valuebet_content_hash, valuebet_identity_hash
-from surebet.dom_links import first_href
 from surebet.models import FilterConfig, ParseStats, ValueBet, ValidationStatus
 from surebet.normalization import normalize_bookmaker, normalize_event, parse_market
 from surebet.percent import parse_percent
@@ -75,10 +74,6 @@ def extract_valuebets(page: Page, filt: FilterConfig, settings: Settings) -> tup
                 if market_raw:
                     market_raw = _strip_html_text(market_raw)
 
-            bookmaker_url = first_href(el.locator(S.LEG_BOOKMAKER), settings.base_url)
-            event_url = first_href(el.locator(S.LEG_EVENT), settings.base_url)
-            odds_url = first_href(el.locator(S.LEG_ODDS), settings.base_url)
-
             # data-id is the valuebet record id (e.g. 1taGhg). Do NOT replace with
             # td.event's event-XXX — revalidate looks up tbody[data-id=...] and that
             # would miss every row (Sent: 0 with New: N).
@@ -111,9 +106,6 @@ def extract_valuebets(page: Page, filt: FilterConfig, settings: Settings) -> tup
                 odds=odds,
                 fair_probability=probability,
                 site_overvalue=site_ov,
-                bookmaker_url=bookmaker_url,
-                event_url=event_url,
-                odds_url=odds_url,
                 captured_at=now,
                 raw={
                     "data_start_at": start_at,

@@ -46,14 +46,12 @@ from surebet.valuebets import extract_valuebets
 from telegram.bot import TelegramBot
 from telegram.callbacks import poll_callbacks
 from telegram.formatting import (
-    arbitrage_url_buttons,
     build_alert_keyboard,
     format_arbitrage_alert,
     format_error_alert,
     format_run_summary,
     format_valuebet_alert,
     short_id_from_hash,
-    valuebet_url_buttons,
 )
 
 log = logging.getLogger(__name__)
@@ -294,13 +292,11 @@ def process_filter(
 
         if filt.source == "valuebet":
             text = format_valuebet_alert(item, tz=g.display_timezone)
-            urls = valuebet_url_buttons(item)
         else:
             text = format_arbitrage_alert(item, tz=g.display_timezone, currency=g.currency)
-            urls = arbitrage_url_buttons(item)
 
         sid = short_id_from_hash(item.identity_hash or "")
-        keyboard = build_alert_keyboard(short_id=sid, url_buttons=urls)
+        keyboard = build_alert_keyboard(short_id=sid)
         mid = bot.send_message(text, message_thread_id=thread_id, reply_markup=keyboard)
         if mid is None:
             log.error("Telegram send_message failed for %s", item.event_id)

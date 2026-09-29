@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 from surebet.deduplication import valuebet_content_hash, valuebet_identity_hash
-from surebet.dom_links import absolute_url
 from surebet.models import ValueBet
 from surebet.text_clean import age_label, clean_competition
 from telegram.formatting import bet_callback_data, build_alert_keyboard, short_id_from_hash
@@ -29,24 +28,15 @@ def test_clean_competition_strips_bracket_id():
     assert clean_competition("Premier League") == "Premier League"
 
 
-def test_absolute_url():
-    assert absolute_url("/go/x", "https://pt.surebet.com") == "https://pt.surebet.com/go/x"
-    assert absolute_url("https://bet7.com/e/1", "https://pt.surebet.com") == "https://bet7.com/e/1"
-    assert absolute_url("#", "https://pt.surebet.com") is None
-
-
-def test_keyboard_has_bet_buttons_and_urls():
+def test_keyboard_apostei_nao_only():
     sid = short_id_from_hash("abcdef0123456789ffff")
-    kb = build_alert_keyboard(
-        short_id=sid,
-        url_buttons=[("Bet7 1.80", "https://example.com/a"), ("22Bet 2.60", "https://example.com/b")],
-    )
+    kb = build_alert_keyboard(short_id=sid)
     rows = kb["inline_keyboard"]
-    assert rows[0][0]["url"] == "https://example.com/a"
-    assert rows[0][1]["url"] == "https://example.com/b"
-    assert rows[1][0]["callback_data"] == bet_callback_data("Y", sid)
-    assert rows[1][1]["callback_data"] == bet_callback_data("N", sid)
-    assert len(rows[1][0]["callback_data"]) <= 64
+    assert len(rows) == 1
+    assert rows[0][0]["callback_data"] == bet_callback_data("Y", sid)
+    assert rows[0][1]["callback_data"] == bet_callback_data("N", sid)
+    assert "url" not in rows[0][0]
+    assert len(rows[0][0]["callback_data"]) <= 64
 
 
 def test_age_label():

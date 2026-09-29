@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from surebet.models import Arbitrage, ValueBet
@@ -21,13 +21,6 @@ def _hhmmss(dt: datetime | None, tz_name: str) -> str:
     return local.strftime("%H:%M:%S")
 
 
-def _best_url(*candidates: Optional[str]) -> Optional[str]:
-    for u in candidates:
-        if u:
-            return u
-    return None
-
-
 def bet_callback_data(action: str, short_id: str) -> str:
     # Telegram callback_data max 64 bytes. short_id = 16 hex.
     return f"bet:{action}:{short_id}"
@@ -37,51 +30,16 @@ def short_id_from_hash(identity_hash: str) -> str:
     return (identity_hash or "")[:16]
 
 
-def build_alert_keyboard(
-    *,
-    short_id: str,
-    url_buttons: list[tuple[str, str]],
-) -> dict[str, Any]:
-    """Inline keyboard: bookie URL row(s) + Apostei / Não."""
-    rows: list[list[dict[str, str]]] = []
-    row: list[dict[str, str]] = []
-    for label, url in url_buttons:
-        if not url:
-            continue
-        row.append({"text": label[:64], "url": url})
-        if len(row) >= 2:
-            rows.append(row)
-            row = []
-    if row:
-        rows.append(row)
-    rows.append(
-        [
-            {"text": "✅ Apostei", "callback_data": bet_callback_data("Y", short_id)},
-            {"text": "❌ Não", "callback_data": bet_callback_data("N", short_id)},
+def build_alert_keyboard(*, short_id: str) -> dict[str, Any]:
+    """Inline keyboard: Apostei / Não only (Surebet hrefs are /nav/ gateways, not direct bookies)."""
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "✅ Apostei", "callback_data": bet_callback_data("Y", short_id)},
+                {"text": "❌ Não", "callback_data": bet_callback_data("N", short_id)},
+            ]
         ]
-    )
-    return {"inline_keyboard": rows}
-
-
-def valuebet_url_buttons(vb: ValueBet) -> list[tuple[str, str]]:
-    url = _best_url(vb.odds_url, vb.event_url, vb.bookmaker_url)
-    if not url:
-        return []
-    label = vb.bookmaker or "Abrir"
-    odd = f"{vb.odds:.2f}" if vb.odds is not None else ""
-    text = f"{label} {odd}".strip()
-    return [(text, url)]
-
-
-def arbitrage_url_buttons(arb: Arbitrage) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
-    for o in arb.outcomes:
-        url = _best_url(o.odds_url, o.event_url, o.bookmaker_url)
-        if not url:
-            continue
-        odd = f"{o.odds:.2f}"
-        out.append((f"{o.bookmaker} {odd}", url))
-    return out
+    }
 
 
 def format_valuebet_alert(vb: ValueBet, *, tz: str = "Europe/Lisbon") -> str:
