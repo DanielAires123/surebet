@@ -92,8 +92,9 @@ def export_storage_interactive(settings: Settings, out: Path = DEFAULT_STORAGE_P
     print("=" * 60)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, slow_mo=50)
-        context = browser.new_context(locale="pt-PT", viewport={"width": 1440, "height": 900})
+        # no_viewport + maximized: fixed 1440x900 clips cookie banners at the bottom of the page
+        browser = p.chromium.launch(headless=False, slow_mo=50, args=["--start-maximized"])
+        context = browser.new_context(locale="pt-PT", no_viewport=True)
         page = context.new_page()
         page.goto(f"{settings.base_url}{S.LOGIN_PATH}", wait_until="domcontentloaded")
 
