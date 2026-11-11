@@ -57,7 +57,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+          # ubuntu-latest already ships Chromium's .so deps (this run had them).
+          # --with-deps also apt-gets ~22MB of CJK/xfonts and exits 100 when the
+          # runner cannot resolve archive.ubuntu.com. Binary install is enough.
+          python -m playwright install chromium
 
       - name: Run tests
         run: pytest -q
